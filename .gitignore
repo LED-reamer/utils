@@ -1,2 +1,5 @@
 *.o
 .ccls-cache
+
+# symlink not dir! -> utils not utils/
+utils
