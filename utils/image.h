@@ -1,20 +1,14 @@
 //link with -lm
-//platform independent code
-
-//includes:
-//	logging.h
-//	allocator.h
-
 #pragma once
 #include "allocator.h"
 #include <stdint.h>
-#include <stddef.h>
+#include <stdbool.h>
 
 #define JPG_QUALITY 50 //0 - 100, higher number -> better quality but bigger size
 
 typedef enum
 {
-	IMAGE_NONE, //do not use!
+	IMAGE_DONT_CARE = 0,
 	IMAGE_R, //monochrome
 	IMAGE_RA,//monochrome and alpha
 	IMAGE_RGB,
@@ -40,10 +34,10 @@ typedef struct
 }image_t;
 
 //8-bit
-image_t* image_load(allocator_t* allocator, const char* filename, uint8_t flip_vertically, image_channels_e force_channels);
-image_t* image_load_from_memory(allocator_t* allocator, uint8_t* pixels, size_t buffer_size, uint8_t flip_vertically, image_channels_e force_channels);
+image_t image_load(allocator_t* allocator, const char* filename, bool flip_vertically, image_channels_e force_channels);
+image_t image_load_from_memory(allocator_t* allocator, uint8_t* pixels, size_t buffer_size, bool flip_vertically, image_channels_e force_channels);
 //16-bit
-image_t* image_load_16bit(allocator_t* allocator, const char* filename, uint8_t flip_vertically, image_channels_e force_channels);
-image_t* image_load_from_memory_16bit(allocator_t* allocator, uint8_t* pixels, size_t buffer_size, uint8_t flip_vertically, image_channels_e force_channels);
+image_t image_load_16bit(allocator_t* allocator, const char* filename, bool flip_vertically, image_channels_e force_channels);
+image_t image_load_from_memory_16bit(allocator_t* allocator, uint8_t* pixels, size_t buffer_size, bool flip_vertically, image_channels_e force_channels);
 void image_destroy(image_t* image);
 void image_save(image_t* image, image_filetype_e type, const char* filename);

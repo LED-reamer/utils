@@ -1,5 +1,3 @@
-//platform independent code
-
 #pragma once
 
 #define ANSI_RED     "\x1b[31m"

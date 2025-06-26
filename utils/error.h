@@ -4,11 +4,11 @@ typedef enum
 {
 	STATUS_ERROR = 0,//false
 	STATUS_OK = 1,//true
-}status_code_e;
+}status_e;
 
 typedef struct
 {
-	status_code_e status_code;
+	status_e status;
 	const char* desc;
 }error_t;
 
@@ -20,3 +20,4 @@ typedef struct
 #endif
 
 #define error_ok() error_create(STATUS_OK, NULL)
+#define error_failed() error_create(STATUS_ERROR, NULL)
