@@ -24,7 +24,7 @@ typedef enum
 	BUFFER_OK = 1,
 }buffer_result_e;
 
-buffer_t* buffer_create(allocator_t* allocator);
+buffer_t buffer_create(allocator_t* allocator);
 void buffer_destroy(buffer_t* buffer);
 
 //data handling
@@ -40,11 +40,11 @@ void buffer_write_to_file_ptr(buffer_t* buffer, FILE* file);
 //buffer reading --- all functions advance the read_offset
 void buffer_set_offset(buffer_t* buffer, size_t new_offset);
 void* buffer_read_buffer(buffer_t* buffer, size_t size);
-#define buffer_read(buffer, type) *(type*)buffer_read_buffer(buffer, sizeof(type))
+#define buffer_read(buffer, type) *(type*)buffer_read_buffer((buffer), sizeof(type))
 const char* buffer_read_cstring(buffer_t* buffer);//returned string only exists for the lifetime of buffer
 const char* buffer_read_allocated_cstring(buffer_t* buffer, allocator_t* allocator);//returned string needs to be freed by the user
 
 //buffer writing --- all functions still advance the read_offset and reserve more memory
 void buffer_write_buffer(buffer_t* buffer, void* data, size_t size);
-#define buffer_write(buffer, data, type) buffer_write_buffer(buffer, &data, sizeof(type))
-#define buffer_write_cstring(buffer, string) buffer_write_buffer(buffer, (void*)string, strlen(string)+1)
+#define buffer_write(buffer, data, type) buffer_write_buffer((buffer), &data, sizeof(type))
+#define buffer_write_cstring(buffer, string) buffer_write_buffer((buffer), (void*)string, strlen(string)+1)

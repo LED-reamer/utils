@@ -1,6 +1,6 @@
 #include "arguments.h"
 
-#include "dynamic_array.h"
+#include "array.h"
 #include "logging.h"
 
 #include <string.h>
@@ -9,23 +9,20 @@
 #include <limits.h>
 #include <ctype.h>
 
-
-#define MALLOC arg_parser->allocator->malloc
-#define REALLOC arg_parser->allocator->realloc
-#define FREE arg_parser->allocator->free
-
 //returns NULL if flag could not be found
-argument_t* _get_argument_from_string(argument_parser_t* arg_parser, const char* flag_name_or_alias, bool getter);
+argument_t* __get_argument_from_string(argument_parser_t* arg_parser, const char* flag_name_or_alias, bool getter);
 
 
-argument_parser_t* argument_parser_create(allocator_t* allocator, const char* program_description)
+argument_parser_t argument_parser_create(allocator_t* allocator, const char* program_description)
 {
-	argument_parser_t* arg_parser =  allocator->malloc(sizeof(argument_parser_t));
-	arg_parser->allocator = allocator;
-	arg_parser->program_description = program_description;
-	arg_parser->arguments = array_create(allocator, argument_t, 0, 10);
+	argument_parser_t arg_parser = (argument_parser_t){
+		.allocator = allocator,
+		.program_description = program_description,
+		.arguments = array_create(allocator, argument_t, 0, 10),
+	};
+	
 
-	argument_parser_add(arg_parser, 
+	argument_parser_add(&arg_parser, 
 		(argument_t){
 			.type = ARGUMENT_OPTIONAL_FLAG, 
 			.name="-h", 
@@ -40,13 +37,13 @@ argument_parser_t* argument_parser_create(allocator_t* allocator, const char* pr
 void argument_parser_destroy(argument_parser_t* arg_parser)
 {
 	array_destroy(arg_parser->arguments);
-	FREE(arg_parser);
+	*arg_parser = (argument_parser_t){0};
 }
 
 void argument_parser_add(argument_parser_t* arg_parser, argument_t argument)
 {
 	//check if argument already exists
-	if(NULL != _get_argument_from_string(arg_parser, argument.name, false))
+	if(NULL != __get_argument_from_string(arg_parser, argument.name, false))
 	{
 		ERROR("Could not add argument %s since it already exists", argument.name);
 	}
@@ -69,7 +66,7 @@ void argument_parser_parse(argument_parser_t* arg_parser, int argc, char** argv)
 		if(arg_parser->arguments[i].type != ARGUMENT_REQUIRED_STRING)
 			continue;
 
-		if(positional_arg_count+1 >= argc || NULL != _get_argument_from_string(arg_parser, argv[positional_arg_count+1], false))
+		if(positional_arg_count+1 >= argc || NULL != __get_argument_from_string(arg_parser, argv[positional_arg_count+1], false))
 		{
 		 	argument_parser_print_usage(arg_parser);
 			exit(EXIT_FAILURE);
@@ -87,7 +84,7 @@ void argument_parser_parse(argument_parser_t* arg_parser, int argc, char** argv)
 		if(i <= positional_arg_count) continue;
 
 		//check if token is an argument
-		argument_t* arg = _get_argument_from_string(arg_parser, argv[i], false);
+		argument_t* arg = __get_argument_from_string(arg_parser, argv[i], false);
 		if(arg != NULL)
 		{
 			switch(arg->type)
@@ -149,7 +146,7 @@ void argument_parser_print_usage(argument_parser_t* arg_parser)
 
 bool argument_parser_get_bool(argument_parser_t* arg_parser, const char* flag_name)
 {
-	argument_t* arg = _get_argument_from_string(arg_parser, flag_name, true);
+	argument_t* arg = __get_argument_from_string(arg_parser, flag_name, true);
 	if(arg == NULL)
 	{
 		FATAL_ERROR("Could not find \"%s\"", flag_name);
@@ -160,7 +157,7 @@ bool argument_parser_get_bool(argument_parser_t* arg_parser, const char* flag_na
 
 const char* argument_parser_get_string(argument_parser_t* arg_parser, const char* flag_name)
 {
-	argument_t* arg = _get_argument_from_string(arg_parser, flag_name, true);
+	argument_t* arg = __get_argument_from_string(arg_parser, flag_name, true);
 	if(arg == NULL)
 	{
 		FATAL_ERROR("Could not find \"%s\"", flag_name);
@@ -170,7 +167,7 @@ const char* argument_parser_get_string(argument_parser_t* arg_parser, const char
 }
 
 //local functions
-argument_t* _get_argument_from_string(argument_parser_t* arg_parser, const char* flag_name_or_alias, bool getter)
+argument_t* __get_argument_from_string(argument_parser_t* arg_parser, const char* flag_name_or_alias, bool getter)
 {
 	if(flag_name_or_alias == NULL)
 	{

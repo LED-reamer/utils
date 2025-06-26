@@ -1,8 +1,3 @@
-//platform independend code
-//includes:
-//	logging.h
-//	allocator.h
-
 #pragma once
 #include "allocator.h"
 #include <stdint.h>
