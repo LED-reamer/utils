@@ -24,7 +24,8 @@ int main(void){
 
 	//you can also parse binary files:
 	//writing...
-	char* write_data1 = "this is a custom parsed binary file!";
+	LOG("writing data to file (parsing)");
+	char* write_data1 = "hello";
 	uint32_t write_data2 = 123;
 	double write_data3 = 50.0;
 
@@ -32,26 +33,18 @@ int main(void){
 	buffer_write_cstring(&write_buffer, write_data1);
 	buffer_write(&write_buffer, write_data2, uint32_t);
 	buffer_write(&write_buffer, write_data3, double);
-	buffer_destroy(&write_buffer);
 	buffer_write_to_file(&write_buffer, "output.bin");
+	buffer_destroy(&write_buffer);
 
 	//reading...
-	
+	LOG("reading back from file (parsing)");
 
 	buffer_t read_buffer = buffer_create(allocator_get_default());
 	buffer_load_data_from_file(&read_buffer, "output.bin");
-	const char* read_data1 = buffer_read_cstring(&write_buffer);
+	const char* read_data1 = buffer_read_cstring(&read_buffer);
 	uint32_t read_data2 = buffer_read(&read_buffer, uint32_t);
 	double read_data3 = buffer_read(&read_buffer, double);
-
-	if(0 == strcmp(read_data1, write_data1)
-		&& read_data2 == write_data2
-		&& read_data3 == read_data3){
-		LOG("parsed correctly");
-	}else{
-		ERROR("Could not parse correctly");
-	}
-	buffer_destroy(&read_buffer);
 	
+	buffer_destroy(&read_buffer);
 	return 0;
 }

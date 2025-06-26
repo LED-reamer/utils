@@ -99,14 +99,7 @@ void* buffer_read_buffer(buffer_t* buffer, size_t size){
 }
 
 const char* buffer_read_cstring(buffer_t* buffer){
-	size_t string_start_pos = buffer->read_offset;
-	while(!check_for_read_offset_overflow(buffer, sizeof(char))){
-		char current_char = buffer_read(buffer, int8_t);
-		if(current_char == '\0')
-			break;
-	}
-
-	return buffer->data + string_start_pos;
+	return buffer_read_buffer(buffer, strlen(buffer->data + buffer->read_offset) + 1/*copy \0*/);
 }
 
 const char* buffer_read_allocated_cstring(buffer_t* buffer, allocator_t* allocator){
@@ -122,4 +115,8 @@ void buffer_write_buffer(buffer_t* buffer, void* data, size_t size){
 		memcpy(buffer->data + buffer->read_offset, data, size);
 		buffer->read_offset += size;
 	}
+}
+
+void buffer_write_cstring(buffer_t* buffer, char* cstring){
+	buffer_write_buffer(buffer, (void*)cstring, strlen(cstring)+1/*include \0*/);
 }
