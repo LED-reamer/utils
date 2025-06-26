@@ -1,5 +1,5 @@
 # utils
-My personal utility library for my c projects
+My personal utility library for my c projects.
 
 NOTE: this is a fresh repo and I'm currently working on the examples and mindor bugs / design choices
 
