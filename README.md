@@ -12,22 +12,22 @@ NOTE: this is a fresh repo and I'm currently working on the examples and minor b
 |[arguments.h](/utils/arguments.h)|yes||parser for argv argc|
 |[array.h](/utils/array.h)|yes||simple array that resizes in blocks|
 |[buffer.h](/utils/buffer.h)|yes||a buffer to contain memory, read from files, write to files, also for parsing structs|
-|[dynamic_library.h](/utils/dynamic_library.h)|yes|-ldl|works on windows/linux|
-|[error.h](/utils/error.h)|yes|||
-|[gpu.h](/utils/gpu.h)|in development|-lSDL3||
-|[hashmap.h](/utils/hashmap.h)|no|||
-|[image.h](/utils/image.h)|yes|-lm||
-|[linked_list.h](/utils/linked_list.h)|no||			|
-|[logging.h](/utils/logging.h)|yes||			|
-|[macros.h](/utils/macros.h)|no||			|
-|[random.h](/utils/random.h)|no||			|
-|[renderer.h](/utils/renderer.h)|in development||			|
-|[string.h](/utils/string.h)|no||			|
-|[terminal.h](/utils/terminal.h)|no||			|
-|[thread.h](/utils/thread.h)|no||			|
-|[types.h](/utils/types.h)|no||			|
-|[window.h](/utils/window.h)|no|-lSDL3|			|
-|[format/stl.h](/utils/format/stl.h)|no||			|
-|[format/wav.h](/utils/format/wav.h)|no||			|
-|[tools/assets.h](/utils/tools/assets.h)|no||			|
-|[tools/debugger.h](/utils/tools/debugger.h)|no||			|
+|[dynamic_library.h](/utils/dynamic_library.h)|yes|-ldl|loads .so/.dll libraries. works on windows/linux|
+|[error.h](/utils/error.h)|yes||simple error struct that contains state and custom error strings. Intended to be returned by all functions|
+|[gpu.h](/utils/gpu.h)|in development|-lSDL3|wrapper around [SDL3's sdl_gpu.h](https://wiki.libsdl.org/SDL3/CategoryGPU)|
+|[hashmap.h](/utils/hashmap.h)|no||a hashmap|
+|[image.h](/utils/image.h)|yes|-lm|basically just a wrapper around stb_image and stb_image_write|
+|[linked_list.h](/utils/linked_list.h)|no||a linked list|
+|[logging.h](/utils/logging.h)|yes||simple logging and error tracking|
+|[macros.h](/utils/macros.h)|no||(hopefully)useful macros|
+|[random.h](/utils/random.h)|no||generate random values, GUIDs and 2D perlin noise|
+|[renderer.h](/utils/renderer.h)|in development|-lSDL3|uses gpu.h to quickly draw shapes (both 2D and 3D) and textures|
+|[string.h](/utils/string.h)|no||stack allocated strings|
+|[terminal.h](/utils/terminal.h)|no|-lncurses|api for reading input and drawing text/buffers/images to the terminal|
+|[thread.h](/utils/thread.h)|no||threading. For both linux and windows|
+|[types.h](/utils/types.h)|no||vector and matrix operations.|
+|[window.h](/utils/window.h)|no|-lSDL3|Everything about windows input (uses SDL3)|
+|[format/stl.h](/utils/format/stl.h)|no||read 3d mesh files in the .stl format|
+|[format/wav.h](/utils/format/wav.h)|no||read sound files in the .wav format|
+|[tools/assets.h](/utils/tools/assets.h)|no||load files from zip files/from disc|
+|[tools/debugger.h](/utils/tools/debugger.h)|no||tracks memory allocations|sq
