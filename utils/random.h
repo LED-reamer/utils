@@ -2,6 +2,7 @@
 #include <stdint.h>
 
 void random_set_seed(uint32_t seed);
+void random_set_random_seed();
 uint32_t random_get_seed();
 float random_float(float min, float max);
 double random_double(double min, double max);

@@ -2,7 +2,7 @@
 My personal utility library for my c projects.
 
 NOTE: this is a fresh repo and I'm currently working on the examples and minor bugs / design choices
-\nNOTE: gpu.h and renderer.h are still under heavy development
+ALSO: gpu.h and renderer.h are still under heavy development
 
 ## content
 |file				|has example		|linkerflags|description|
@@ -15,14 +15,14 @@ NOTE: this is a fresh repo and I'm currently working on the examples and minor b
 |[dynamic_library.h](/utils/dynamic_library.h)|yes|-ldl|loads .so/.dll libraries. works on windows/linux|
 |[error.h](/utils/error.h)|yes||simple error struct that contains state and custom error strings. Intended to be returned by all functions|
 |[gpu.h](/utils/gpu.h)|in development|-lSDL3|wrapper around [SDL3's sdl_gpu.h](https://wiki.libsdl.org/SDL3/CategoryGPU)|
-|[hashmap.h](/utils/hashmap.h)|no||a hashmap|
+|[hashmap.h](/utils/hashmap.h)|yes||a hashmap|
 |[image.h](/utils/image.h)|yes|-lm|basically just a wrapper around stb_image and stb_image_write|
-|[linked_list.h](/utils/linked_list.h)|no||a linked list|
+|[linked_list.h](/utils/linked_list.h)|yes||a linked list|
 |[logging.h](/utils/logging.h)|yes||simple logging and error tracking|
 |[macros.h](/utils/macros.h)|no||(hopefully)useful macros|
-|[random.h](/utils/random.h)|no||generate random values, GUIDs and 2D perlin noise|
+|[random.h](/utils/random.h)|yes||generate random values, GUIDs and 2D perlin noise|
 |[renderer.h](/utils/renderer.h)|in development|-lSDL3|uses gpu.h to quickly draw shapes (both 2D and 3D) and textures|
-|[string.h](/utils/string.h)|no||stack allocated strings|
+|[string.h](/utils/string.h)|yes||stack allocated strings|
 |[terminal.h](/utils/terminal.h)|no|-lncurses|api for reading input and drawing text/buffers/images to the terminal|
 |[thread.h](/utils/thread.h)|no||threading. For both linux and windows|
 |[types.h](/utils/types.h)|no||vector and matrix operations.|

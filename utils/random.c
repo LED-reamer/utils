@@ -11,6 +11,12 @@ void random_set_seed(uint32_t seed)
 	current_seed = seed;
 }
 
+void random_set_random_seed()
+{
+	current_seed = time(0);
+	random_set_seed(current_seed);
+}
+
 uint32_t random_get_seed()
 {
 	return current_seed;

@@ -47,8 +47,20 @@
 	LOG(#value ": %i", value);\
 } while(0)
 
+#define LOG_UINT64(value)do { \
+	LOG(#value ": %lu" , value);\
+} while(0)
+
+#define LOG_INT64(value)do { \
+	LOG(#value ": %li", value);\
+} while(0)
+
 #define LOG_FLOAT(value)do { \
 	LOG(#value ": %f", value);\
+} while(0)
+
+#define LOG_DOUBLE(value)do { \
+	LOG(#value ": %lf", value);\
 } while(0)
 
 #define LOG_PTR(value)do { \
@@ -75,7 +87,10 @@
 
 #define LOG_UINT(value);
 #define LOG_INT(value);
+#define LOG_UINT64(value);
+#define LOG_INT64(value);
 #define LOG_FLOAT(value);
+#define LOG_DOUBLE(value);
 #define LOG_PTR(value);
 #define LOG_SIZE(value);
 
