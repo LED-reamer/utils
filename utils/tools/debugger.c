@@ -45,7 +45,7 @@ allocator_t own_allocator = {
 };
 
 //other
-hashmap_t* pointers;
+hashmap_t pointers;
 
 void debugger_init(bool live_log){
 	__debugger_data = (__debugger_data_t){0};
@@ -81,7 +81,7 @@ void debugger_deinit(){
 	
 	
 	allocator_set_default(NULL);
-	hashmap_destroy(pointers);
+	hashmap_destroy(&pointers);
 	__debugger_data.initialized = false;
 }
 
@@ -119,7 +119,7 @@ void* dbg_malloc(size_t size){
 	void* ptr = malloc(size);
 	if(__debugger_data.live_log)
 		LOG("malloc: %zu (%p)", size, ptr);
-	hashmap_set(pointers, (hashmap_key_t)ptr, (void*)size);
+	hashmap_set(&pointers, (hashmap_key_t)ptr, (void*)size);
 
 	__debugger_data.allocated += size;
 	__debugger_data.num_allocations++;
@@ -130,12 +130,12 @@ void* dbg_malloc(size_t size){
 void* dbg_realloc(void* ptr, size_t size){
 	__debugger_data.num_realloc_calls++;
 	void* new_ptr = realloc(ptr, size);
-	if(hashmap_contains_key(pointers, (hashmap_key_t)ptr))
+	if(hashmap_contains_key(&pointers, (hashmap_key_t)ptr))
 	{
-		size_t prev_size = (size_t)hashmap_get(pointers, (hashmap_key_t)ptr);
+		size_t prev_size = (size_t)hashmap_get(&pointers, (hashmap_key_t)ptr);
 		if(__debugger_data.live_log)
 			LOG("realloc existing: %zu (%p) -> %zu (%p)", prev_size, ptr, size, new_ptr);
-		hashmap_remove(pointers, (hashmap_key_t)ptr);
+		hashmap_remove(&pointers, (hashmap_key_t)ptr);
 		__debugger_data.allocated -= prev_size;
 	}
 	else
@@ -143,7 +143,7 @@ void* dbg_realloc(void* ptr, size_t size){
 		if(__debugger_data.live_log)
 			LOG("realloc new: %zu (%p)", size, new_ptr);
 	}
-	hashmap_set(pointers, (hashmap_key_t)new_ptr, (void*)size);
+	hashmap_set(&pointers, (hashmap_key_t)new_ptr, (void*)size);
 	__debugger_data.allocated += size;
 	__debugger_data.num_allocations++;
 	__debugger_data.allocated_max = size_max(__debugger_data.allocated_max, __debugger_data.allocated);
@@ -155,7 +155,7 @@ void* dbg_calloc(size_t nmemb, size_t size){
 	void* ptr = calloc(nmemb, size);
 	if(__debugger_data.live_log)
 		LOG("calloc: %zu (%p)", nmemb * size, ptr);
-	hashmap_set(pointers, (hashmap_key_t)ptr, (void*)(nmemb * size));
+	hashmap_set(&pointers, (hashmap_key_t)ptr, (void*)(nmemb * size));
 
 	__debugger_data.allocated += nmemb * size;
 	__debugger_data.num_allocations++;
@@ -165,12 +165,12 @@ void* dbg_calloc(size_t nmemb, size_t size){
 
 void dbg_free(void* ptr){
 	__debugger_data.num_free_calls++;
-	if(!hashmap_contains_key(pointers, (hashmap_key_t)ptr)){
+	if(!hashmap_contains_key(&pointers, (hashmap_key_t)ptr)){
 		ERROR(ANSI_RED"[ double free ]" ANSI_RESET " -> tried freeing at %p", ptr);
 	}
 	
-	size_t size = (size_t)hashmap_get(pointers, (hashmap_key_t)ptr);
-	hashmap_remove(pointers, (hashmap_key_t)ptr);
+	size_t size = (size_t)hashmap_get(&pointers, (hashmap_key_t)ptr);
+	hashmap_remove(&pointers, (hashmap_key_t)ptr);
 	
 	if(__debugger_data.live_log)
 		LOG("free: %zu (%p)", size, ptr);
@@ -200,7 +200,7 @@ void debug_leak_analysis(){
 
 	hashmap_bucket_t* bucket;
 	size_t size;
-	linked_list_foreach(pointers->buckets, &bucket, &size)
+	linked_list_foreach(pointers.buckets, &bucket, &size)
 	{
 		void* leak_ptr = (void*)bucket->key;
 		size_t leak_size = (size_t)bucket->value_ptr;

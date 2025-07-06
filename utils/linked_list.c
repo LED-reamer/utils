@@ -291,7 +291,6 @@ bool __linked_list_foreach(linked_list_t* linked_list, void** data, size_t* size
     struct __linked_list_t* list = (struct __linked_list_t*)linked_list;
 
     if (list->first == NULL) {
-        // Liste ist leer, kein Durchlaufen möglich
         *data = NULL;
         *size = 0;
         return false;
@@ -299,30 +298,25 @@ bool __linked_list_foreach(linked_list_t* linked_list, void** data, size_t* size
 
     if (*next_node == NULL && *looping_stage != 1)
     {
-        // Start der Schleife, weise den ersten Knoten zu
         *next_node = (void*)list->first;
     }
 
     if (*next_node != NULL) {
         struct __node_t* current_node = (struct __node_t*)*next_node;
 
-        // Setze Daten für den aktuellen Knoten
         *data = current_node->data;
         *size = current_node->size;
 
-        // Wenn es einen nächsten Knoten gibt, setze next_node auf den nächsten Knoten
         if (current_node->next != NULL) {
             *next_node = (void*)current_node->next;
-            return true; // Fortfahren mit dem nächsten Knoten
+            return true;
         } else {
-            // Wenn wir das letzte Element erreichen, setzen wir next_node auf NULL und geben zurück
             *next_node = NULL;
-            *looping_stage = 1;//repeat once for last element
-            return true; // Ende der Liste erreicht
+            *looping_stage = 1;
+            return true;
         }
     }
 
-    // Wenn kein nächster Knoten existiert, dann haben wir das Ende der Liste erreicht
     *data = NULL;
     *size = 0;
     return false;

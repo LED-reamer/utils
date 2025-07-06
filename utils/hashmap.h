@@ -17,7 +17,7 @@ typedef struct
 	linked_list_t* buckets;
 }hashmap_t;
 
-hashmap_t* hashmap_create(allocator_t* allocator);
+hashmap_t hashmap_create(allocator_t* allocator);
 void hashmap_destroy(hashmap_t* hashmap);
 void hashmap_set(hashmap_t* hashmap, hashmap_key_t key, void* value_ptr);
 void* hashmap_get(hashmap_t* hashmap, hashmap_key_t key);

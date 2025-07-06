@@ -1,10 +1,11 @@
 #include "hashmap.h"
 
-hashmap_t* hashmap_create(allocator_t* allocator)
+hashmap_t hashmap_create(allocator_t* allocator)
 {
-	hashmap_t* hashmap = allocator->malloc(sizeof(hashmap_t));
-	hashmap->allocator = allocator;
-	hashmap->buckets = linked_list_create(hashmap->allocator);
+	hashmap_t hashmap = {
+		.allocator = allocator,
+		.buckets = linked_list_create(allocator),
+	};
 	
 	return hashmap;
 }
@@ -12,7 +13,8 @@ hashmap_t* hashmap_create(allocator_t* allocator)
 void hashmap_destroy(hashmap_t* hashmap)
 {
 	linked_list_destroy(hashmap->buckets);
-	hashmap->allocator->free(hashmap);
+
+	*hashmap = (hashmap_t){0};
 }
 
 void hashmap_set(hashmap_t* hashmap, hashmap_key_t key, void* value_ptr)

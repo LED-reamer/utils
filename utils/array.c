@@ -55,8 +55,17 @@ void* array_resize(void* array, size_t new_item_count){
 	return ptr;
 }
 
+void array_copy_to_ptr(void* array, void* destination){
+	array_header_t *h = array_header(array);
+	memcpy(destination, array, h->item_count * h->item_size);
+}
+
 size_t array_len(void *array){
 	return array_header(array)->item_count;
+}
+
+size_t array_item_size(void *array){
+	return array_header(array)->item_size;
 }
 
 allocator_t* array_get_allocator(void* array){

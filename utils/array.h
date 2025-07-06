@@ -20,7 +20,9 @@ void* __array_create(allocator_t* allocator, size_t item_size, size_t item_count
 
 void array_destroy(void* array);
 void* array_resize(void* array, size_t new_item_count);
+void array_copy_to_ptr(void* array, void* destination);
 size_t array_len(void* array);//returns number of reserved items
+size_t array_item_size(void *array);
 allocator_t* array_get_allocator(void* array);
 void array_sort(void* array, int (*func_negative_if_a_less_b_etc)(const void* a, const void* b));//compare func: a>b: positive, a=b: zero, a<b: negative
 void array_sort_strings(void* array);
