@@ -25,6 +25,7 @@ typedef enum
 }window_mode_e;
 
 window_t* window_create(allocator_t* allocator, const char* title, uint32_t width, uint32_t height);
+window_t* window_create_from_X11_handle(allocator_t* allocator, uint64_t x11_window);
 void window_destroy(window_t* window);
 bool window_open(window_t* window);
 void window_update(window_t* window);
