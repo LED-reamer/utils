@@ -28,7 +28,7 @@ TODO: fix linked_list.h to use stack allocated head nodes AND use arena allocato
 |[terminal.h](/utils/terminal.h)|no|-lncurses|api for reading input and drawing text/buffers/images to the terminal|
 |[thread.h](/utils/thread.h)|no||threading. For both linux and windows|
 |[types.h](/utils/types.h)|no||vector and matrix operations.|
-|[window.h](/utils/window.h)|no|-lSDL3|Everything about windows input (uses SDL3)|
+|[window.h](/utils/window.h)|yes|-lSDL3|Everything about windows and input (uses SDL3)|
 |[format/stl.h](/utils/format/stl.h)|no||read 3d mesh files in the .stl format|
 |[format/wav.h](/utils/format/wav.h)|no||read sound files in the .wav format|
 |[tools/assets.h](/utils/tools/assets.h)|no||load files from zip files/from disc|
