@@ -1,7 +1,6 @@
 #pragma once
 #include "allocator.h"
 #include "types.h"
-#include <SDL3/SDL_video.h>
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -9,7 +8,7 @@
 typedef struct
 {
 	allocator_t* allocator;
-	SDL_Window* SDL3_window;
+	void* SDL3_window;
 	bool is_open;
 
 	int32_t w, h;
@@ -24,8 +23,8 @@ typedef enum
 	WINDOW_MODE_MINIMIZED,
 }window_mode_e;
 
-window_t* window_create(allocator_t* allocator, const char* title, uint32_t width, uint32_t height);
-window_t* window_create_from_X11_handle(allocator_t* allocator, uint64_t x11_window);
+window_t window_create(allocator_t* allocator, const char* title, uint32_t width, uint32_t height);
+window_t window_create_from_X11_handle(allocator_t* allocator, uint64_t x11_window);
 void window_destroy(window_t* window);
 bool window_open(window_t* window);
 void window_update(window_t* window);
