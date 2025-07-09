@@ -26,10 +26,10 @@ TODO: fix linked_list.h to use stack allocated head nodes AND use arena allocato
 |[renderer.h](/utils/renderer.h)|in development|-lSDL3|uses gpu.h to quickly draw shapes (both 2D and 3D) and textures|
 |[string.h](/utils/string.h)|yes||stack allocated strings|
 |[terminal.h](/utils/terminal.h)|no|-lncurses|api for reading input and drawing text/buffers/images to the terminal|
-|[thread.h](/utils/thread.h)|no|-lpthread or windows|threading. For both linux and windows|
+|[thread.h](/utils/thread.h)|yes|-lpthread or windows|threading. For both linux and windows|
 |[types.h](/utils/types.h)|no||vector and matrix operations.|
 |[window.h](/utils/window.h)|yes|-lSDL3|Everything about windows and input (uses SDL3)|
 |[format/stl.h](/utils/format/stl.h)|no||read 3d mesh files in the .stl format|
 |[format/wav.h](/utils/format/wav.h)|no||read sound files in the .wav format|
 |[tools/assets.h](/utils/tools/assets.h)|no||load files from zip files/from disc|
-|[tools/debugger.h](/utils/tools/debugger.h)|no||tracks memory allocations|sq
+|[tools/memory_tracker.h](/utils/tools/memory_tracker.h)|no||tracks memory allocations|
