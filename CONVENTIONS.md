@@ -1,6 +1,8 @@
-#Coding Style Conventions
+# Coding Style Conventions
 
-Here is a list of my code conventions used in this project.
+Please follow the conventions of the project.
+
+Here is a small collection of my code conventions.
 
 |code element|convention|example|
 |-|-|-|
@@ -28,11 +30,16 @@ void func(){
 ```
 
 **NEVER allocate using malloc (/realloc/calloc) directly**
+
 use allocators from utils/allocator.h instead
+
 `object_t object_create(allocator_t* allocator, int data);`
+
 the object then needs to keep track of it's allocator
 so it can use it again to free when calling
+
 `void object_destroy(object_t* obj);`
+
 
 All objects should be handeled this way!
 
