@@ -11,10 +11,10 @@ typedef struct
 	void* archive;//opaque pointer (zip_t*)
 
 	size_t asset_count;
-	hashmap_t* assets;
+	hashmap_t assets;
 }asset_manager_t;
 
-asset_manager_t* asset_manager_create(allocator_t* allocator, const char* archive_directory/*nullable*/, const char* password/*nullable*/);
+asset_manager_t asset_manager_create(allocator_t* allocator, const char* archive_directory/*nullable*/, const char* password/*nullable*/);
 void asset_manager_destroy(asset_manager_t* asset_manager);
 void asset_manager_load_file(asset_manager_t* asset_manager, buffer_t* buffer, const char* filepath);//immediate load
 void asset_manager_load_asset(asset_manager_t* asset_manager, const char* filepath, size_t type, const char* display_name);//safes as asset

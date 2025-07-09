@@ -1,8 +1,7 @@
 #pragma once
 #include "../allocator.h"
 
-typedef struct
-{
+typedef struct{
 	float position[3];
 	float normal[3];
 	float color[3];//uses uint16_t attribute_byte_count for color if the file supports the extension

@@ -2,9 +2,8 @@
 My personal utility library for my c projects.
 
 NOTE: this is a fresh repo and I'm currently working on the examples and minor bugs / design choices
-ALSO: gpu.h and renderer.h are still under heavy development
 
-TODO: fix linked_list.h to use stack allocated head nodes AND use arena allocator
+ALSO: gpu.h and renderer.h are still under heavy development
 
 ## content
 |file				|has example		|linkerflags|description|

@@ -65,7 +65,7 @@ void linked_list_pop(linked_list_t* linked_list){
     if (last_node->previous == NULL){
         linked_list->first = NULL;
         linked_list->last = NULL;
-    } else{
+    }else{
         last_node->previous->next = NULL;
         linked_list->last = last_node->previous;
     }
@@ -111,7 +111,7 @@ void linked_list_add_index(linked_list_t* linked_list, size_t index, void* data,
 
     if (current->previous != NULL){
         current->previous->next = new_node;
-    } else{
+    }else{
         linked_list->first = new_node;
     }
 
@@ -143,7 +143,7 @@ void linked_list_remove_index(linked_list_t* linked_list, size_t index){
         if (linked_list->first != NULL){
             linked_list->first->previous = NULL;
         }
-    } else{
+    }else{
         current->previous->next = current->next;
         if (current->next != NULL){
             current->next->previous = current->previous;
@@ -221,7 +221,7 @@ bool __linked_list_foreach(linked_list_t* linked_list, void** data, size_t* size
         if (current_node->next != NULL) {
             *next_node = (void*)current_node->next;
             return true;
-        } else {
+        }else{
             *next_node = NULL;
             *looping_stage = 1;
             return true;
@@ -253,7 +253,7 @@ bool __linked_list_foreach_backwards(linked_list_t* linked_list, void** data, si
         if (current_node->previous != NULL){
             *next_node = (void*)current_node->previous;
             return true;
-        } else{
+        }else{
             *next_node = NULL;
             *looping_stage = 1;
             return true;
