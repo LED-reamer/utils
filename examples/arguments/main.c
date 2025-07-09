@@ -1,7 +1,9 @@
 #include "utils/arguments.h"
 #include "utils/logging.h"
+#include "utils/tools/memory_tracker.h"
 
 int main(int argc, char** argv){
+	debugger_init(false);
 	argument_parser_t arg_parser = argument_parser_create(allocator_get_default(), "The programs description.");
 
 	argument_parser_add(&arg_parser, 
@@ -63,5 +65,6 @@ int main(int argc, char** argv){
 		WARNING("-i was not specified");
 	
 	argument_parser_destroy(&arg_parser);
+	debugger_deinit();
 	return 0;
 }

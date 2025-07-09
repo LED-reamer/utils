@@ -23,11 +23,11 @@ void buffer_reserve_memory(buffer_t* buffer, size_t size){
 	if(buffer->size != size){
 		if(size == 0){
 			if(buffer->data)
-				buffer->allocator->free(buffer->data);
+				buffer->allocator->afree(buffer->data);
 			buffer->data = NULL;
 			buffer->size = 0;
 		}else{
-			buffer->data = buffer->allocator->realloc(buffer->data, size);
+			buffer->data = buffer->allocator->arealloc(buffer->data, size);
 			buffer->size = size;
 		}
 	}
@@ -104,7 +104,7 @@ const char* buffer_read_cstring(buffer_t* buffer){
 
 const char* buffer_read_allocated_cstring(buffer_t* buffer, allocator_t* allocator){
 	const char* string = buffer_read_cstring(buffer);
-	char* allocated_string = allocator->malloc(strlen(string) + 1);
+	char* allocated_string = allocator->amalloc(strlen(string) + 1);
 	memcpy(allocated_string, string, strlen(string) + 1);
 	return allocated_string;
 }

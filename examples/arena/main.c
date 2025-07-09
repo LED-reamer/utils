@@ -1,6 +1,8 @@
 #include "utils/arena.h"
+#include "utils/tools/memory_tracker.h"
 
 int main(void){
+	debugger_init(false);
 	//second argument defines the chunk size
 	//third argument how many chunks are allocated from the start
 	arena_t my_arena = arena_create(allocator_get_default(), 1024*1024, 0);
@@ -19,5 +21,6 @@ int main(void){
 
 	//destroying the arena surely also frees previous allocations
 	arena_destroy(&my_arena);
+	debugger_deinit();
 	return 0;
 }

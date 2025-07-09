@@ -22,9 +22,8 @@ SDL_WindowID window_to_close;
 //forward declaration
 void __window_input_update();
 
-window_t window_create(allocator_t* allocator, const char* title, uint32_t width, uint32_t height){
+window_t window_create(const char* title, uint32_t width, uint32_t height){
 	window_t window = (window_t){
-		.allocator = allocator,
 		.is_open = true,
 		.w = 1,
 		.h = 1,
@@ -64,9 +63,8 @@ window_t window_create(allocator_t* allocator, const char* title, uint32_t width
 	return window;
 }
 
-window_t window_create_from_X11_handle(allocator_t* allocator, uint64_t x11_window){
+window_t window_create_from_X11_handle(uint64_t x11_window){
 	window_t window = (window_t){
-		.allocator = allocator,
 		.is_open = true,
 		.w = 1,
 		.h = 1,

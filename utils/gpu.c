@@ -250,7 +250,7 @@ void texture_destroy(texture_t* texture){
 pipeline_t pipeline_create(gpu_context_t* ctx, shader_t* shader, size_t vertex_size, attribute_e vertex_attribs[], size_t num_attribs) {
 
 	// - vertex layout
-	SDL_GPUVertexAttribute* sdl_attribs = ctx->allocator->malloc(sizeof(SDL_GPUVertexAttribute)*num_attribs);
+	SDL_GPUVertexAttribute* sdl_attribs = ctx->allocator->amalloc(sizeof(SDL_GPUVertexAttribute)*num_attribs);
 	size_t offset = 0;
 	for(size_t i = 0; i < num_attribs; i++) {
 		sdl_attribs[i] = (SDL_GPUVertexAttribute){
@@ -333,7 +333,7 @@ pipeline_t pipeline_create(gpu_context_t* ctx, shader_t* shader, size_t vertex_s
     	.ctx = ctx,
     	.sdl_pipeline = SDL_CreateGPUGraphicsPipeline(ctx->device, &pipeline_info),
     };
-    ctx->allocator->free(sdl_attribs);
+    ctx->allocator->afree(sdl_attribs);
 
     return pipeline;
 }

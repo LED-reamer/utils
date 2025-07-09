@@ -1,13 +1,26 @@
 #pragma once
 #include "allocator.h"
+#include "arena.h"
 
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef void* linked_list_t;
+typedef struct linked_list_node_t{
+    void* data;
+    size_t size;
+    struct linked_list_node_t* previous;
+    struct linked_list_node_t* next;
+}linked_list_node_t;
 
-linked_list_t* linked_list_create(allocator_t* allocator);
+typedef struct{
+	allocator_t* allocator;
+	arena_t arena;
+	linked_list_node_t* first;
+	linked_list_node_t* last;
+}linked_list_t;
+
+linked_list_t linked_list_create(allocator_t* allocator);
 void linked_list_destroy(linked_list_t* linked_list);
 void linked_list_clear(linked_list_t* linked_list);
 size_t linked_list_len(linked_list_t* linked_list);

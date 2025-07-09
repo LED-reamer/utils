@@ -15,7 +15,7 @@ typedef struct
 
 void* __array_create(allocator_t* allocator, size_t item_size, size_t item_count, size_t items_per_chunk){
 	void *ptr = 0;
-	array_header_t* header = allocator->malloc(sizeof(array_header_t));
+	array_header_t* header = allocator->amalloc(sizeof(array_header_t));
 	header->allocator = allocator;
 
 	if(header){
@@ -28,7 +28,7 @@ void* __array_create(allocator_t* allocator, size_t item_size, size_t item_count
 	return ptr;
 }
 
-void array_destroy(void *array) { array_header(array)->allocator->free(array_header(array)); }
+void array_destroy(void *array) { array_header(array)->allocator->afree(array_header(array)); }
 
 size_t __chunks_needed(size_t chunk_size, size_t item_size, size_t item_count){
 	if((item_size * item_count) % chunk_size == 0)
@@ -41,7 +41,7 @@ void* array_resize(void* array, size_t new_item_count){
 	array_header_t *h = array_header(array);
 	//check if resizing is needed
 	if(__chunks_needed(h->chunk_size, h->item_size, h->item_count) != __chunks_needed(h->chunk_size, h->item_size, new_item_count)){
-		h = array_header(array)->allocator->realloc(h, sizeof(array_header_t) + h->chunk_size * __chunks_needed(h->chunk_size, h->item_size, new_item_count));
+		h = array_header(array)->allocator->arealloc(h, sizeof(array_header_t) + h->chunk_size * __chunks_needed(h->chunk_size, h->item_size, new_item_count));
 
 		if (!h){
 		  ERROR("Could not allocate extra dynamic array memory");

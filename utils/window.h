@@ -1,13 +1,10 @@
 #pragma once
-#include "allocator.h"
 #include "types.h"
 
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef struct
-{
-	allocator_t* allocator;
+typedef struct{
 	void* SDL3_window;
 	bool is_open;
 
@@ -16,15 +13,14 @@ typedef struct
 	bool dark_theme;
 } window_t;
 
-typedef enum
-{
+typedef enum{
 	WINDOW_MODE_NORMAL,
 	WINDOW_MODE_MAXIMIZED,
 	WINDOW_MODE_MINIMIZED,
 }window_mode_e;
 
-window_t window_create(allocator_t* allocator, const char* title, uint32_t width, uint32_t height);
-window_t window_create_from_X11_handle(allocator_t* allocator, uint64_t x11_window);
+window_t window_create(const char* title, uint32_t width, uint32_t height);
+window_t window_create_from_X11_handle(uint64_t x11_window);
 void window_destroy(window_t* window);
 bool window_open(window_t* window);
 void window_update(window_t* window);
@@ -50,8 +46,7 @@ bool key_down(window_t* window, key_e key);
 bool key_just_down(window_t* window, key_e key);
 bool key_just_released(window_t* window, key_e key);
 
-typedef enum
-{
+typedef enum{
 	MOUSE_BUTTON_LEFT = 1,
 	MOUSE_BUTTON_MIDDLE = 2,
 	MOUSE_BUTTON_RIGHT = 3,
@@ -74,8 +69,7 @@ void mouse_hide_cursor(bool hidden);
 char* clipboard_get_string_allocated();//free on your own
 void clipboard_set_string(const char* string);
 
-enum key_e
-{
+enum key_e{
 	KEY_RETURN               =  0x0000000du,
 	KEY_ESCAPE               =  0x0000001bu,
 	KEY_BACKSPACE            =  0x00000008u,

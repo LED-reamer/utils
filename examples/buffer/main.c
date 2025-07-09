@@ -1,8 +1,10 @@
 #include "utils/buffer.h"
 #include "utils/logging.h"
+#include "utils/tools/memory_tracker.h"
 
 
 int main(void){
+	debugger_init(false);
 	buffer_t my_buffer = buffer_create(allocator_get_default());
 
 	char* test_string = "this is a test string";
@@ -46,5 +48,6 @@ int main(void){
 	double read_data3 = buffer_read(&read_buffer, double);
 	
 	buffer_destroy(&read_buffer);
+	debugger_deinit();
 	return 0;
 }

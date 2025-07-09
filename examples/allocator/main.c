@@ -1,4 +1,5 @@
 #include "utils/allocator.h"
+#include "utils/tools/memory_tracker.h"
 
 #include <stdlib.h>//for custom allocator functions
 
@@ -8,26 +9,27 @@ void* custom_calloc(size_t nmemb, size_t size){ return calloc(nmemb, size); }
 void custom_free(void* ptr){ free(ptr); }
 
 allocator_t my_custom_allocator = (allocator_t){
-	.malloc = custom_malloc,
-	.realloc = custom_realloc,
-	.calloc = custom_calloc,
-	.free = custom_free,
+	.amalloc = custom_malloc,
+	.arealloc = custom_realloc,
+	.acalloc = custom_calloc,
+	.afree = custom_free,
 };
 
 int main(void){
+	debugger_init(true);
 	// -= default allocator =-
 	allocator_t* my_allocator = allocator_get_default();
 
-	void* some_memory = my_allocator->malloc(1024);
-	some_memory = my_allocator->realloc(some_memory, 2048);
-	int* some_more_memory = my_allocator->calloc(500, sizeof(int));
-	my_allocator->free(some_memory);
-	my_allocator->free(some_more_memory);
+	void* some_memory = my_allocator->amalloc(1024);
+	some_memory = my_allocator->arealloc(some_memory, 2048);
+	int* some_more_memory = my_allocator->acalloc(500, sizeof(int));
+	my_allocator->afree(some_memory);
+	my_allocator->afree(some_more_memory);
 
 	// -= custom allocator =-
 
-	void* custom_allocated_memory = my_custom_allocator.malloc(1000);
-	my_custom_allocator.free(custom_allocated_memory);
+	void* custom_allocated_memory = my_custom_allocator.amalloc(1000);
+	my_custom_allocator.afree(custom_allocated_memory);
 	//...
 
 	// You can also set your custom allocator as the new default
@@ -38,6 +40,6 @@ int main(void){
 
 	//functions that allocate memory should always ask for an allocator_t*
 	// example: buffer_create(allocator_t* allocator, ...)
-	
+	debugger_deinit();
 	return 0;
 }

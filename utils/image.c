@@ -25,7 +25,7 @@ image_t image_load(allocator_t* allocator, const char* filename, bool flip_verti
 	image.channels = channels;
 
 	size_t data_size = image.width * image.height * image.channels * (image.bits_per_channel / 8);
-	image.pixels = image.allocator->malloc(data_size);
+	image.pixels = image.allocator->amalloc(data_size);
 	memcpy(image.pixels, data, data_size);
 	stbi_image_free(data);
 	
@@ -49,7 +49,7 @@ image_t image_load_from_memory(allocator_t* allocator, uint8_t* pixels, size_t b
 	image.channels = channels;
 
 	size_t data_size = image.width * image.height * image.channels * (image.bits_per_channel / 8);
-	image.pixels = image.allocator->malloc(data_size);
+	image.pixels = image.allocator->amalloc(data_size);
 	memcpy(image.pixels, data, data_size);
 	stbi_image_free(data);
 	
@@ -73,7 +73,7 @@ image_t image_load_16bit(allocator_t* allocator, const char* filename, bool flip
 	image.channels = channels;
 
 	size_t data_size = image.width * image.height * image.channels * (image.bits_per_channel / 8);
-	image.pixels = image.allocator->malloc(data_size);
+	image.pixels = image.allocator->amalloc(data_size);
 	memcpy(image.pixels, data, data_size);
 	stbi_image_free(data);
 	
@@ -97,7 +97,7 @@ image_t image_load_from_memory_16bit(allocator_t* allocator, uint8_t* pixels, si
 	image.channels = channels;
 
 	size_t data_size = image.width * image.height * image.channels * (image.bits_per_channel / 8);
-	image.pixels = image.allocator->malloc(data_size);
+	image.pixels = image.allocator->amalloc(data_size);
 	memcpy(image.pixels, data, data_size);
 	stbi_image_free(data);
 	
@@ -105,7 +105,7 @@ image_t image_load_from_memory_16bit(allocator_t* allocator, uint8_t* pixels, si
 }
 
 void image_destroy(image_t* image){
-	image->allocator->free(image->pixels);
+	image->allocator->afree(image->pixels);
 	*image = (image_t){0};
 }
 

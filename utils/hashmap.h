@@ -14,7 +14,7 @@ typedef struct
 typedef struct
 {
 	allocator_t* allocator;
-	linked_list_t* buckets;
+	linked_list_t buckets;
 }hashmap_t;
 
 hashmap_t hashmap_create(allocator_t* allocator);
