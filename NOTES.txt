@@ -1,0 +1,171 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+#include <stb_truetype.h>
+
+typedef struct {
+    int x, y, width, height;
+} GlyphRect;
+
+void generateSDF(uint8_t* image, int width, int height) {
+    float* distanceField = (float*)malloc(width * height * sizeof(float));
+
+    // Schritt 1: Vorwärtsdistanzberechnung (Abstand zu nächstem "offenen" Pixel)
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            if (image[y * width + x] > 0) {
+                distanceField[y * width + x] = 0.0f; // Ein Pixel, das im Bild ist, hat Abstand 0
+            } else {
+                distanceField[y * width + x] = FLT_MAX; // Anfangswert für entfernte Pixel
+            }
+        }
+    }
+
+    // Schritt 2: Vorwärtsdurchlauf (oben, unten, links, rechts)
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            if (image[y * width + x] == 0) continue;
+
+            // Überprüfen von benachbarten Pixeln: oben, unten, links, rechts
+            if (x > 0) distanceField[y * width + x] = fmin(distanceField[y * width + x], distanceField[y * width + (x - 1)] + 1.0f);
+            if (y > 0) distanceField[y * width + x] = fmin(distanceField[y * width + x], distanceField[(y - 1) * width + x] + 1.0f);
+        }
+    }
+
+    // Schritt 3: Rückwärtsdurchlauf (unten, rechts, oben, links)
+    for (int y = height - 1; y >= 0; --y) {
+        for (int x = width - 1; x >= 0; --x) {
+            if (image[y * width + x] == 0) continue;
+
+            // Überprüfen von benachbarten Pixeln: unten, rechts, oben, links
+            if (x < width - 1) distanceField[y * width + x] = fmin(distanceField[y * width + x], distanceField[y * width + (x + 1)] + 1.0f);
+            if (y < height - 1) distanceField[y * width + x] = fmin(distanceField[y * width + x], distanceField[(y + 1) * width + x] + 1.0f);
+        }
+    }
+
+    // Schritt 4: Die SDF normalisieren und in den Bildpuffer zurückschreiben
+    float maxDistance = 0.0f;
+    for (int i = 0; i < width * height; i++) {
+        maxDistance = fmax(maxDistance, distanceField[i]);
+    }
+
+    // Finales SDF: Skaliere die Werte in den Bereich 0-255 und speichere sie zurück ins Bild
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            float distance = distanceField[y * width + x];
+            float sdfValue = distance / maxDistance * 255.0f;
+            image[y * width + x] = (uint8_t)sdfValue; // Das Bild wird direkt mit den SDF-Werten aktualisiert
+        }
+    }
+
+    free(distanceField); // Speicher freigeben
+}
+
+int loadFontAndRender(const void* fontData, size_t fontSize, const char* codepoints, uint8_t** outImage, int* outWidth, int* outHeight, GlyphRect** outRects) {
+    stbtt_fontinfo fontInfo;
+    if (!stbtt_InitFont(&fontInfo, fontData, 0)) {
+        printf("Fehler beim Laden der Schriftart\n");
+        return 0;
+    }
+
+    int scaleFactor = 64;
+    int ascent, descent, lineGap;
+    stbtt_GetFontVMetrics(&fontInfo, &ascent, &descent, &lineGap);
+
+    int atlasWidth = 1024;
+    int atlasHeight = 1024;
+    uint8_t* atlasImage = (uint8_t*)malloc(atlasWidth * atlasHeight);
+    memset(atlasImage, 0, atlasWidth * atlasHeight);
+
+    int x = 0, y = 0, maxHeight = 0;
+    int numGlyphs = strlen(codepoints);
+    GlyphRect* rects = (GlyphRect*)malloc(numGlyphs * sizeof(GlyphRect));
+
+    for (int i = 0; i < numGlyphs; ++i) {
+        int glyphIndex = stbtt_FindGlyphIndex(&fontInfo, codepoints[i]);
+        if (glyphIndex == 0) continue;
+
+        int bbox[4];
+        stbtt_GetGlyphBitmapBox(&fontInfo, glyphIndex, scaleFactor, scaleFactor, bbox);
+
+        int glyphWidth = bbox[2] - bbox[0];
+        int glyphHeight = bbox[3] - bbox[1];
+
+
+        if (x + glyphWidth >= atlasWidth) {
+            x = 0;
+            y += maxHeight;
+            maxHeight = 0;
+        }
+
+
+        if (glyphHeight > maxHeight) {
+            maxHeight = glyphHeight;
+        }
+
+
+        uint8_t* bitmap = (uint8_t*)malloc(glyphWidth * glyphHeight);
+        stbtt_MakeGlyphBitmap(&fontInfo, bitmap, glyphWidth, glyphHeight, glyphWidth, scaleFactor, scaleFactor, glyphIndex);
+
+        for (int j = 0; j < glyphHeight; ++j) {
+            for (int k = 0; k < glyphWidth; ++k) {
+                int atlasX = x + k;
+                int atlasY = y + j;
+                if (atlasX < atlasWidth && atlasY < atlasHeight) {
+                    atlasImage[atlasY * atlasWidth + atlasX] = bitmap[j * glyphWidth + k];
+                }
+            }
+        }
+
+        free(bitmap);
+
+
+        rects[i].x = x;
+        rects[i].y = y;
+        rects[i].width = glyphWidth;
+        rects[i].height = glyphHeight;
+
+
+        x += glyphWidth;
+    }
+
+    *outImage = atlasImage;
+    *outWidth = atlasWidth;
+    *outHeight = atlasHeight;
+    *outRects = rects;
+
+    return 1;
+}
+
+int main() {
+    FILE* fontFile = fopen("path/to/font.ttf", "rb");
+    fseek(fontFile, 0, SEEK_END);
+    size_t fontSize = ftell(fontFile);
+    fseek(fontFile, 0, SEEK_SET);
+    void* fontData = malloc(fontSize);
+    fread(fontData, 1, fontSize, fontFile);
+    fclose(fontFile);
+
+    const char* codepoints = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    uint8_t* image;
+    int width, height;
+    GlyphRect* rects;
+
+    if (loadFontAndRender(fontData, fontSize, codepoints, &image, &width, &height, &rects)) {
+        printf("Font wurde geladen und formatiert!\n");
+
+
+        generateSDF(image, width, height);
+
+
+        free(image);
+        free(rects);
+    } else {
+        printf("Fehler beim Laden oder Rendern der Schriftart.\n");
+    }
+
+    free(fontData);
+    return 0;
+}

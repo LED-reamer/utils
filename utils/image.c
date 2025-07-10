@@ -1,118 +1,117 @@
 #include "image.h"
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "3rd-party/stb_image.h"
-#include "3rd-party/stb_image_write.h"
+#include "buffer.h"
 #include "logging.h"
 
-#include <string.h>//memcpy
+#define STB_IMAGE_IMPLEMENTATION
+#include "3rd-party/stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "3rd-party/stb_image_write.h"
 
-image_t image_load(allocator_t* allocator, const char* filename, bool flip_vertically, image_channels_e force_channels){
+#include <string.h> //for memcpy
+
+image_t image_create(allocator_t* allocator, uint32_t width, uint32_t height, image_channels_e channels, image_channel_size_e channel_size){
+	//could throw an error here
+	if(width == 0) width = 1;
+	if(height == 0) height = 1;
+	if(channels == IMAGE_CHANNELS_AUTO) channels = IMAGE_RGBA;
+	if(channel_size == IMAGE_CHANNEL_SIZE_AUTO) channel_size = IMAGE_8BIT;
+
 	image_t image = (image_t){
 		.allocator = allocator,
-		.bits_per_channel = 8,
+		.width = width,
+		.height = height,
+		.channels = channels,
+		.channel_size = channel_size,
+		.buffer_size = channels * channel_size * width * height,
 	};
-	
-	int channels;
-	stbi_set_flip_vertically_on_load(flip_vertically);
-	uint8_t* data = stbi_load(filename, (int32_t*)(&image.width), (int32_t*)(&image.height), &channels, force_channels);
-	if(data == NULL){
-		ERROR("Couldn't load image \"%s\"", filename);
-		return (image_t){0};
-	}
-	if(channels > 4) return (image_t){0};
-	if(channels < (int)force_channels) channels = force_channels;
-	image.channels = channels;
 
-	size_t data_size = image.width * image.height * image.channels * (image.bits_per_channel / 8);
-	image.pixels = image.allocator->amalloc(data_size);
-	memcpy(image.pixels, data, data_size);
-	stbi_image_free(data);
-	
+	image.pixels = image.allocator->amalloc(image.buffer_size);
+
 	return image;
 }
 
-image_t image_load_from_memory(allocator_t* allocator, uint8_t* pixels, size_t buffer_size, bool flip_vertically, image_channels_e force_channels){
-	image_t image = (image_t){
-		.allocator = allocator,
-		.bits_per_channel = 8,
-	};
-	int channels;
-	stbi_set_flip_vertically_on_load(flip_vertically);
-	uint8_t* data = stbi_load_from_memory(pixels, buffer_size, (int32_t*)(&image.width), (int32_t*)(&image.height), &channels, force_channels);
-	if(data == NULL){
-		ERROR("Couldn't load image from memory");
+image_t image_create_from_file(allocator_t* allocator, const char* filename, bool flip_vertically, image_channels_e force_channels, image_channel_size_e force_channel_size){
+	buffer_t file_buffer = buffer_create(allocator);
+	buffer_load_data_from_file(&file_buffer, filename);
+	image_t image =  image_create_from_memory(allocator, file_buffer.data, file_buffer.size, flip_vertically, force_channels, force_channel_size);
+	buffer_destroy(&file_buffer);
+
+	if(image.pixels == NULL){
+		ERROR("Could not load image at \"%s\"", filename);
+		image_destroy(&image);
 		return (image_t){0};
 	}
-	if(channels > 4) return (image_t){0};
-	if(channels < (int)force_channels) channels = force_channels;
-	image.channels = channels;
-
-	size_t data_size = image.width * image.height * image.channels * (image.bits_per_channel / 8);
-	image.pixels = image.allocator->amalloc(data_size);
-	memcpy(image.pixels, data, data_size);
-	stbi_image_free(data);
-	
 	return image;
 }
 
-image_t image_load_16bit(allocator_t* allocator, const char* filename, bool flip_vertically, image_channels_e force_channels){
+image_t image_create_from_memory(allocator_t* allocator, void* buffer, size_t buffer_size, bool flip_vertically, image_channels_e force_channels, image_channel_size_e force_channel_size){
 	image_t image = (image_t){
 		.allocator = allocator,
-		.bits_per_channel = 16,
+		.channels = force_channels,
 	};
-	int channels;
-	stbi_set_flip_vertically_on_load(flip_vertically);
-	uint16_t* data = stbi_load_16(filename, (int32_t*)(&image.width), (int32_t*)(&image.height), &channels, force_channels);
-	if(data == NULL){
-		ERROR("Couldn't load image \"%s\"", filename);
+
+	uint8_t desired_channels = force_channels;
+	uint8_t desired_channel_size = force_channel_size;
+
+	//defaults
+	if(desired_channels == IMAGE_CHANNELS_AUTO)
+		desired_channels = IMAGE_RGBA;
+	if(desired_channel_size == IMAGE_CHANNEL_SIZE_AUTO){
+		if(stbi_is_16_bit_from_memory(buffer, buffer_size))
+			desired_channel_size = IMAGE_16BIT;//use 16-bit if available
+		else
+			desired_channel_size = IMAGE_8BIT;
+	}
+	if(flip_vertically)
+		stbi_set_flip_vertically_on_load(true);
+
+	int channels_in_file = 0;
+	void* stbi_data = NULL;
+	switch(desired_channel_size){
+		case IMAGE_8BIT:
+			stbi_data = stbi_load_from_memory(buffer, buffer_size, (int32_t*)&image.width, (int32_t*)&image.height, &channels_in_file, desired_channels);
+			break;
+		case IMAGE_16BIT:
+			stbi_data = stbi_load_16_from_memory(buffer, buffer_size, (int32_t*)&image.width, (int32_t*)&image.height, &channels_in_file, desired_channels);
+			break;
+		case IMAGE_FLOAT32:
+			stbi_data = stbi_loadf_from_memory(buffer, buffer_size, (int32_t*)&image.width, (int32_t*)&image.height, &channels_in_file, desired_channels);
+			break;
+	}
+
+	if(stbi_data == NULL){
+		ERROR("Could not load image");
+		image_destroy(&image);
 		return (image_t){0};
 	}
-	if(channels > 4) return (image_t){0};
-	if(channels < (int)force_channels) channels = force_channels;
-	image.channels = channels;
 
-	size_t data_size = image.width * image.height * image.channels * (image.bits_per_channel / 8);
-	image.pixels = image.allocator->amalloc(data_size);
-	memcpy(image.pixels, data, data_size);
-	stbi_image_free(data);
-	
-	return image;
-}
-
-image_t image_load_from_memory_16bit(allocator_t* allocator, uint8_t* pixels, size_t buffer_size, bool flip_vertically, image_channels_e force_channels){
-	image_t image = (image_t){
-		.allocator = allocator,
-		.bits_per_channel = 16,
-	};
-	int channels;
-	stbi_set_flip_vertically_on_load(flip_vertically);
-	uint16_t* data = stbi_load_16_from_memory(pixels, buffer_size, (int32_t*)(&image.width), (int32_t*)(&image.height), &channels, force_channels);
-	if(data == NULL){
-		ERROR("Couldn't load image from memory");
-		return (image_t){0};
+	//chose actual format
+	if(force_channels == IMAGE_CHANNELS_AUTO){
+		image.channels = channels_in_file;
 	}
-	if(channels > 4) return (image_t){0};
-	if(channels < (int)force_channels) channels = force_channels;
-	image.channels = channels;
+	image.channel_size = desired_channel_size;
+	image.buffer_size = image.width * image.height * image.channels * image.channel_size;
 
-	size_t data_size = image.width * image.height * image.channels * (image.bits_per_channel / 8);
-	image.pixels = image.allocator->amalloc(data_size);
-	memcpy(image.pixels, data, data_size);
-	stbi_image_free(data);
-	
+	image.pixels = image.allocator->amalloc(image.buffer_size);
+	memcpy(image.pixels, stbi_data, image.buffer_size);
+	stbi_image_free(stbi_data);
+
 	return image;
 }
 
 void image_destroy(image_t* image){
-	image->allocator->afree(image->pixels);
+	if(image->pixels != NULL)
+		image->allocator->afree(image->pixels);
 	*image = (image_t){0};
 }
 
-void image_save(image_t* image, image_filetype_e type, const char* filename){
-	switch(type){
+void image_save(image_t* image, image_filetype_e filetype, const char* filename, bool flip_vertically){
+	if(flip_vertically)
+		stbi_flip_vertically_on_write(true);
+
+	switch(filetype){
 		case IMAGE_PNG:
-			if(!stbi_write_png(filename, (int32_t)image->width, (int32_t)image->height, image->channels, image->pixels, image->width * image->channels * (image->bits_per_channel / 8))){
+			if(!stbi_write_png(filename, (int32_t)image->width, (int32_t)image->height, image->channels, image->pixels, image->width * image->channels * image->channel_size)){
 				ERROR("Couldn't save .png \"%s\"", filename);
 			}
 			break;
@@ -132,8 +131,8 @@ void image_save(image_t* image, image_filetype_e type, const char* filename){
 			}
 			break;
 		case IMAGE_HDR:
-			if(image->bits_per_channel != 16){
-				ERROR("Couldn't save as .hdr since 16 bits_per_channel are required \"%s\"", filename);
+			if(image->channel_size != 4){
+				ERROR("Couldn't save as .hdr since FLOAT32 channel size is required \"%s\"", filename);
 				break;
 			}
 			if(!stbi_write_hdr(filename, (int32_t)image->width, (int32_t)image->height, image->channels, (float*)image->pixels)){
