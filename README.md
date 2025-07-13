@@ -5,6 +5,8 @@ NOTE: this is a fresh repo and I'm currently working on the examples and minor b
 
 ALSO: gpu.h and renderer.h are still under heavy development
 
+TODO: use msdf font generator instead of sdf
+
 ## content
 |file				|has example		|linkerflags|description|
 |-------------------|:-----------------:|-|-----------|

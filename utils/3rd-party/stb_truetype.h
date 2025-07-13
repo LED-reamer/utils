@@ -4579,13 +4579,14 @@ STBTT_DEF unsigned char * stbtt_GetGlyphSDF(const stbtt_fontinfo *info, float sc
    int w,h;
    unsigned char *data;
 
-   if (scale == 0) return NULL;
+   if (scale == 0)
+   	return NULL;
 
    stbtt_GetGlyphBitmapBoxSubpixel(info, glyph, scale, scale, 0.0f,0.0f, &ix0,&iy0,&ix1,&iy1);
 
    // if empty, return NULL
    if (ix0 == ix1 || iy0 == iy1)
-      return NULL;
+   	return NULL;
 
    ix0 -= padding;
    iy0 -= padding;
