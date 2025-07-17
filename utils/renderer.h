@@ -2,6 +2,7 @@
 #include "window.h"
 #include "allocator.h"
 #include "types.h"
+#include "font.h"
 
 //2D COORDINATE SYSTEM (units in pixels):
 //	(0,0) ───────► x
@@ -22,6 +23,7 @@ typedef enum {
 	RENDERER_2D_SHAPES = 1,
 	RENDERER_3D_SHAPES = 2,
 	RENDERER_TEXTURES = 4,
+	RENDERER_TEXT = 8,
 }renderer_e;
 
 typedef struct {
@@ -32,6 +34,8 @@ typedef struct {
 	float z_near;
 	float z_far;
 }camera_t;
+
+camera_t renderer_get_default_camera();
 
 void renderer_init(allocator_t* allocator, window_t* window, renderer_e renderer_flags);
 void renderer_deinit();
@@ -70,3 +74,7 @@ void renderer_draw_cylinder(vec3_t pos1, vec3_t pos2, float radius, color_t colo
 //void renderer_draw_rectangle_center(vec2_t center, vec2_t size, color_t color);
 //void renderer_draw_line(vec2_t pos1, vec2_t pos2, float thickness, color_t color);
 //void renderer_draw_circle(vec2_t position, float radius, color_t color);
+
+// -=TEXT-RENDERER=-
+void renderer_set_font(font_t* font);
+void renderer_draw_text(const char* string, vec2_t pos, color_t color);

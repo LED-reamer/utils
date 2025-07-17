@@ -90,7 +90,7 @@ struct texture_t{
 	SDL_GPUTexture* sdl_texture;
 
 	uint32_t w, h;
-	
+
 	SDL_GPUTextureFormat format;
 	SDL_GPUColorTargetBlendState blend_state;
 };

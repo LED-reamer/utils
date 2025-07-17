@@ -1,0 +1,7 @@
+#!/bin/bash
+
+glslangValidator -V text.vert.glsl -o text.vert.spv
+glslangValidator -V text.frag.glsl -o text.frag.spv
+
+mv text.vert.spv compiled/text.vert.spv
+mv text.frag.spv compiled/text.frag.spv

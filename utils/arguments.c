@@ -20,13 +20,13 @@ argument_parser_t argument_parser_create(allocator_t* allocator, const char* pro
 		.program_description = program_description,
 		.arguments = array_create(allocator, argument_t, 0, 10),
 	};
-	
 
-	argument_parser_add(&arg_parser, 
+
+	argument_parser_add(&arg_parser,
 		(argument_t){
-			.type = ARGUMENT_OPTIONAL_FLAG, 
-			.name="-h", 
-			.alias="--help", 
+			.type = ARGUMENT_OPTIONAL_FLAG,
+			.name="-h",
+			.alias="--help",
 			.desc="shows this help message"
 		}
 	);
@@ -47,7 +47,7 @@ void argument_parser_add(argument_parser_t* arg_parser, argument_t argument)
 	{
 		ERROR("Could not add argument %s since it already exists", argument.name);
 	}
-	
+
 	array_push(arg_parser->arguments, argument);
 }
 
@@ -58,7 +58,7 @@ void argument_parser_parse(argument_parser_t* arg_parser, int argc, char** argv)
 		ERROR("wasn't provided correct argc or argv");
 	}
 	arg_parser->program_name = argv[0];
-	
+
 	int positional_arg_count = 0;
 	//handle positional arguments first
 	for(size_t i = 0; i < array_len(arg_parser->arguments); i++)
@@ -85,6 +85,7 @@ void argument_parser_parse(argument_parser_t* arg_parser, int argc, char** argv)
 
 		//check if token is an argument
 		argument_t* arg = __get_argument_from_string(arg_parser, argv[i], false);
+		char *endptr;
 		if(arg != NULL)
 		{
 			switch(arg->type)
@@ -93,8 +94,24 @@ void argument_parser_parse(argument_parser_t* arg_parser, int argc, char** argv)
 					arg->value_bool = true;
 					break;
 				case ARGUMENT_OPTIONAL_STRING:
-					if(i+1 >= argc) ERROR("no string provided after %s", arg->name);
+					if(i+1 >= argc) FATAL_ERROR("no string provided for %s", arg->name);
 					arg->value_string = argv[i+1];
+					i++;
+					break;
+				case ARGUMENT_OPTIONAL_UINT32:
+					if(i+1 >= argc) FATAL_ERROR("no unsigned integer provided for %s", arg->name);
+					arg->value_uint32 = strtoul(argv[i+1], &endptr, 10);
+					if(*endptr != '\0'){
+						FATAL_ERROR("invalid unsigned integer provided for %s", arg->name);
+					}
+					i++;
+					break;
+				case ARGUMENT_OPTIONAL_INT32:
+					if(i+1 >= argc) FATAL_ERROR("no signed integer provided for %s", arg->name);
+					arg->value_int32 = strtol(argv[i+1], &endptr, 10);
+					if(*endptr != '\0'){
+						FATAL_ERROR("invalid signed integer provided for %s", arg->name);
+					}
 					i++;
 					break;
 				default:
@@ -123,21 +140,15 @@ void argument_parser_print_usage(argument_parser_t* arg_parser)
 
 	for(size_t i = 0; i < array_len(arg_parser->arguments); i++)
 	{
-		if(arg_parser->arguments[i].type != ARGUMENT_REQUIRED_STRING)
-			continue;
-		printf("<%s> ", arg_parser->arguments[i].name);
+		if(arg_parser->arguments[i].type == ARGUMENT_REQUIRED_STRING)
+			printf("<%s> ", arg_parser->arguments[i].name);
+		else
+			printf("[%s] ", arg_parser->arguments[i].name);
 	}
 
-	for(size_t i = 0; i < array_len(arg_parser->arguments); i++)
-	{
-		if(arg_parser->arguments[i].type == ARGUMENT_REQUIRED_STRING)
-			continue;
-		printf("[%s] ", arg_parser->arguments[i].name);
-	}
-	
 	printf("\n\n%s\n\noptions:\n", arg_parser->program_description);
 
-	
+
 	for(size_t i = 0; i < array_len(arg_parser->arguments); i++)
 	{
 		printf("\t%s, %s\t\t%s\n", arg_parser->arguments[i].name, arg_parser->arguments[i].alias, arg_parser->arguments[i].desc);
@@ -151,7 +162,7 @@ bool argument_parser_get_bool(argument_parser_t* arg_parser, const char* flag_na
 	{
 		FATAL_ERROR("Could not find \"%s\"", flag_name);
 	}
-	
+
 	return arg->value_bool;
 }
 
@@ -162,8 +173,28 @@ const char* argument_parser_get_string(argument_parser_t* arg_parser, const char
 	{
 		FATAL_ERROR("Could not find \"%s\"", flag_name);
 	}
-	
+
 	return arg->value_string;
+}
+
+uint32_t argument_parser_get_uint32(argument_parser_t* arg_parser, const char* flag_name){
+	argument_t* arg = __get_argument_from_string(arg_parser, flag_name, true);
+	if(arg == NULL)
+	{
+		FATAL_ERROR("Could not find \"%s\"", flag_name);
+	}
+
+	return arg->value_uint32;
+}
+
+int32_t argument_parser_get_int32(argument_parser_t* arg_parser, const char* flag_name){
+	argument_t* arg = __get_argument_from_string(arg_parser, flag_name, true);
+	if(arg == NULL)
+	{
+		FATAL_ERROR("Could not find \"%s\"", flag_name);
+	}
+
+	return arg->value_int32;
 }
 
 //local functions
@@ -176,38 +207,20 @@ argument_t* __get_argument_from_string(argument_parser_t* arg_parser, const char
 
 	if(!getter)
 		if(flag_name_or_alias[0] != '-') return NULL;
-	
+
 	for (size_t i = 0; i < array_len(arg_parser->arguments); i++)
 	{
-		if(0 == strncmp(flag_name_or_alias, arg_parser->arguments[i].name, strlen(arg_parser->arguments[i].name)) 
+		if(0 == strncmp(flag_name_or_alias, arg_parser->arguments[i].name, strlen(arg_parser->arguments[i].name))
 			&& strlen(flag_name_or_alias) == strlen(arg_parser->arguments[i].name))
 		{
 			return &arg_parser->arguments[i];
 		}
 
-		if(0 == strncmp(flag_name_or_alias, arg_parser->arguments[i].alias, strlen(arg_parser->arguments[i].alias)) 
+		if(0 == strncmp(flag_name_or_alias, arg_parser->arguments[i].alias, strlen(arg_parser->arguments[i].alias))
 			&& strlen(flag_name_or_alias) == strlen(arg_parser->arguments[i].alias))
 		{
 			return &arg_parser->arguments[i];
 		}
 	}
 	return NULL;
-}
-
-bool argument_string_to_int32(int32_t *output, char *string)
-{
-    char *end;
-    if (string[0] == '\0' || isspace(string[0]))
-        return false;
-    errno = 0;
-    long l = strtol(string, &end, 10);
-    /* Both checks are needed because INT_MAX == LONG_MAX is possible. */
-    if (l > INT_MAX || (errno == ERANGE && l == LONG_MAX))
-        return false;
-    if (l < INT_MIN || (errno == ERANGE && l == LONG_MIN))
-        return false;
-    if (*end != '\0')
-        return false;
-    *output = l;
-    return true;
 }

@@ -9,6 +9,8 @@ typedef enum
 	ARGUMENT_REQUIRED_STRING,	// filename or "name of file" etc
 	ARGUMENT_OPTIONAL_FLAG,		// -f or --flag
 	ARGUMENT_OPTIONAL_STRING,	// -s test or -s "testing this string"
+	ARGUMENT_OPTIONAL_UINT32,
+	ARGUMENT_OPTIONAL_INT32,
 }argument_parser_type_e;
 
 typedef struct
@@ -18,8 +20,10 @@ typedef struct
 	const char* alias;
 	const char* desc;//description
 	union {
-		bool value_bool;
 		const char* value_string;
+		bool value_bool;
+		uint32_t value_uint32;
+		int32_t value_int32;
 	};
 }argument_t;
 
@@ -28,7 +32,7 @@ typedef struct
 	allocator_t* allocator;
 	const char* program_name;
 	const char* program_description;
-	
+
 	argument_t* arguments;//dynamic array //TODO: it's unclear that this is a util array and has to be freed with array_destroy
 }argument_parser_t;
 
@@ -41,4 +45,5 @@ void argument_parser_print_usage(argument_parser_t* arg_parser);
 
 bool argument_parser_get_bool(argument_parser_t* arg_parser, const char* flag_name);
 const char* argument_parser_get_string(argument_parser_t* arg_parser, const char* flag_name);
-bool argument_string_to_int32(int32_t *output, char* string);
+uint32_t argument_parser_get_uint32(argument_parser_t* arg_parser, const char* flag_name);
+int32_t argument_parser_get_int32(argument_parser_t* arg_parser, const char* flag_name);

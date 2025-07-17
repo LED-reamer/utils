@@ -1,0 +1,1 @@
+gcc main.c ../../utils/buffer.c ../../utils/font.c ../../utils/arena.c ../../utils/gpu.c ../../utils/renderer.c ../../utils/allocator.c ../../utils/window.c ../../utils/tools/memory_tracker.c -lm -lSDL3 -I../../ -o example && ./example

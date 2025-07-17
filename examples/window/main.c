@@ -7,8 +7,6 @@
 // this is just the basic structure of a single window application
 // for all the functionality see utils/window.h
 
-#include <SDL3/SDL.h>
-
 int main(void) {
 	debugger_init(false);
 	window_t win = window_create("window name", 800, 600);

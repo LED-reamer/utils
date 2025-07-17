@@ -169,8 +169,8 @@ bool font_get_codepoint_uv(font_t* font, uint32_t codepoint, uint32_t uv_rect[4]
 
 	uv_rect[0] = glyph->src_x / font->atlas_width;
 	uv_rect[1] = glyph->src_y / font->atlas_height;
-	uv_rect[2] = glyph->src_width / font->atlas_width;
-	uv_rect[3] = glyph->src_height / font->atlas_height;
+	uv_rect[2] = (glyph->src_x + glyph->src_width) / font->atlas_width;
+	uv_rect[3] = (glyph->src_y + glyph->src_height) / font->atlas_height;
 
 	return true;
 }
