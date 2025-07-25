@@ -29,7 +29,7 @@ window_t window_create(const char* title, uint32_t width, uint32_t height){
 		.h = 1,
 		.dark_theme = false,
 	};
-	
+
 	if(num_windows == 0){
 		if (!SDL_Init(SDL_INIT_VIDEO)){
 			ERROR("Couldn't init SDL3");
@@ -55,11 +55,11 @@ window_t window_create(const char* title, uint32_t width, uint32_t height){
 		ERROR("Couldn't create SDL3 window: %s", SDL_GetError());
 		return (window_t){0};
 	}
-	
+
 	if(SDL_GetSystemTheme() == SDL_SYSTEM_THEME_DARK) window.dark_theme = true;
-	
+
 	num_windows++;
-	
+
 	return window;
 }
 
@@ -93,23 +93,23 @@ window_t window_create_from_X11_handle(uint64_t x11_window){
 		ERROR("Couldn't create SDL3 window: %s", SDL_GetError());
 		return (window_t){0};
 	}
-	
+
 	if(SDL_GetSystemTheme() == SDL_SYSTEM_THEME_DARK) window.dark_theme = true;
-	
+
 	num_windows++;
-	
+
 	return window;
 }
 
 void window_destroy(window_t* window){
 	SDL_DestroyWindow(window->SDL3_window);
 	*window = (window_t){0};
-	
+
 	num_windows--;
 	if(num_windows == 0){
 		if(current_cursor != NULL)
 			SDL_DestroyCursor(current_cursor);
-		
+
 		SDL_Quit();
 	}
 }
@@ -212,7 +212,7 @@ long double window_get_time_s(){
 	return ticks / (long double)1000000000;
 }
 
-void __window_input_update(){//called by window_update()
+void __window_input_update(){//TODO does not support multiple windows: called by window_update()
 	if(num_keyboard_states > NUM_KEYBOARD_STATES) FATAL_ERROR("Wrong SDL3 SDL_SCANCODE_COUNT - outdated?");
 	memcpy(keyboard_state_previous, keyboard_state_current, num_keyboard_states * sizeof(bool));
 	mouse_state_previous = mouse_state_current;
@@ -222,7 +222,7 @@ void __window_input_update(){//called by window_update()
 	//reset
 	mouse_x_scroll = 0;
 	mouse_y_scroll = 0;
-	
+
 	SDL_Event e;
 	while (SDL_PollEvent(&e)){
 	    if (e.type == SDL_EVENT_MOUSE_WHEEL){
@@ -235,7 +235,7 @@ void __window_input_update(){//called by window_update()
 	    	window_to_close = e.window.windowID;
 	    }
 	}
-	
+
 	SDL_PumpEvents();
 }
 

@@ -7,7 +7,7 @@ void* allocator_realloc(void* ptr, size_t n) {return realloc(ptr, n);}
 void* allocator_calloc(size_t nmemb, size_t n) {return calloc(nmemb, n);}
 void allocator_free(void* ptr) {free(ptr);}
 
-allocator_t util_default_allocator = { 
+allocator_t util_default_allocator = {
 	.amalloc = allocator_malloc,
 	.arealloc = allocator_realloc,
 	.acalloc = allocator_calloc,

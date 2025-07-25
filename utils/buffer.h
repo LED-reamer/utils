@@ -7,10 +7,9 @@
 #include <string.h>
 
 
-typedef struct
-{
+typedef struct {
 	allocator_t* allocator;
-	
+
 	size_t size;
 	void* data;
 
@@ -18,8 +17,7 @@ typedef struct
 	size_t read_offset;
 }buffer_t;
 
-typedef enum
-{
+typedef enum {
 	BUFFER_ERROR = 0,
 	BUFFER_OK = 1,
 }buffer_result_e;

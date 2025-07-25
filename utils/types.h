@@ -83,6 +83,7 @@ typedef union uvec4_t uvec4_t;
 typedef union mat4x4_t mat4x4_t;// inline functions use OpenGL friendly m[column][row] system
 //misc.
 typedef union color_t color_t;
+typedef union rectangle_t rectangle_t;
 
 //macro
 #define vec2(x, y) (vec2_t){{x, y}}
@@ -95,6 +96,7 @@ typedef union color_t color_t;
 #define uvec3(x, y, z) (uvec3_t){{x, y, z}}
 #define uvec4(x, y, z, w) (uvec4_t){{x, y, z, w}}
 #define color(r, g, b, a) (color_t){{r, g, b, a}}
+#define rectangle(x, y, w, h) (rectangle_t){{x, y, w, h}}
 #define mat4x4(x) (mat4x4_t){{{{x,x,x,x}, {x,x,x,x}, {x,x,x,x}, {x,x,x,x}}}}
 
 #define PI 3.14159265358979323846f
@@ -177,6 +179,13 @@ typedef union color_t{
 	};
 	float rgba[4];
 }color_t;
+
+typedef union rectangle_t{
+	struct{
+		float x, y, w, h;
+	};
+	float xywh[4];
+}rectangle_t;
 
 //inline functions
 static inline float deg2rad(float degrees) {
@@ -305,7 +314,7 @@ static inline vec3_t vec3_normalize(vec3_t v) {
 
 static inline vec3_t vec3_rotate_around_axis(vec3_t point, vec3_t origin, vec3_t axis, float radians) {
     axis = vec3_normalize(axis);
-    
+
     vec3_t p = vec3_sub(point, origin);
 
     float cos_theta = cosf(radians);
@@ -357,7 +366,7 @@ static inline void mat4x4_translate(mat4x4_t* out, float x, float y, float z) {
 static inline void mat4x4_scale(mat4x4_t* out, float x, float y, float z) {
 	mat4x4_t s = mat4x4(0);
 	s.m[0][0] = x; s.m[1][1] = y; s.m[2][2] = z; s.m[3][3] = 1.0f;
-	
+
 	*out = mat4x4_mul(out, &s);
 }
 
@@ -395,7 +404,7 @@ static inline mat4x4_t mat4x4_lookat(vec3_t eye, vec3_t center, vec3_t up) {
 	vec3_t f = vec3_normalize(vec3_sub(center, eye));
 	vec3_t s = vec3_normalize(vec3_cross(f, up));
 	vec3_t u = vec3_cross(s, f);
-	
+
 	m.m[0][0] = s.x;
 	m.m[0][1] = u.x;
 	m.m[0][2] =-f.x;
@@ -416,16 +425,16 @@ static inline mat4x4_t mat4x4_lookat(vec3_t eye, vec3_t center, vec3_t up) {
 //left handed
 static inline mat4x4_t mat4x4_lookat_lh(vec3_t eye, vec3_t center, vec3_t up) {
     mat4x4_t m = {0};
-    
+
     // Berechnung des Vorwärtsvektors (z-Achse der Kamera)
     vec3_t f = vec3_normalize(vec3_sub(center, eye));
-    
+
     // Berechnung des Seitwärtsvektors (x-Achse der Kamera)
     vec3_t s = vec3_normalize(vec3_cross(f, up));
-    
+
     // Berechnung des "oberen" Vektors (y-Achse der Kamera)
     vec3_t u = vec3_cross(s, f);
-    
+
     // Setze die Matrixwerte
     m.m[0][0] = s.x;
     m.m[0][1] = u.x;
@@ -436,14 +445,14 @@ static inline mat4x4_t mat4x4_lookat_lh(vec3_t eye, vec3_t center, vec3_t up) {
     m.m[2][0] = s.z;
     m.m[2][1] = u.z;
     m.m[2][2] = f.z;
-    
+
     // Setze die Translation der Matrix
     m.m[3][0] = -vec3_dot(s, eye);
     m.m[3][1] = -vec3_dot(u, eye);
     m.m[3][2] = vec3_dot(f, eye);  // f bleibt positiv für das linkshändige Koordinatensystem
     m.m[0][3] = m.m[1][3] = m.m[2][3] = 0.0f;
     m.m[3][3] = 1.0f;
-    
+
     return m;
 }
 
