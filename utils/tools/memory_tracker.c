@@ -55,6 +55,10 @@ void debugger_deinit(){
 	ctx = (debugger_data_t){0};
 }
 
+void debugger_get_stats(size_t* currently_allocated, size_t* max_allocated){
+	*currently_allocated = ctx.currently_allocated;
+	*max_allocated = ctx.max_allocated;
+}
 
 void infos_add_info(allocation_info_t info){
 	num_infos++;

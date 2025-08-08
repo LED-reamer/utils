@@ -19,6 +19,9 @@ float __mouse_x = 0, __mouse_y = 0, mouse_dx = 0, mouse_dy = 0, mouse_x_scroll =
 SDL_Cursor* current_cursor = NULL;
 SDL_WindowID window_to_close;
 
+int64_t last_input_update = 0;
+#define INPUT_UPDATE_TIME_NS 1000000 //1 ms
+
 //forward declaration
 void __window_input_update();
 
@@ -120,7 +123,13 @@ bool window_open(window_t* window){
 
 void window_update(window_t* window){
 	if(window_to_close == SDL_GetWindowID(window->SDL3_window)) return window_close(window);
-	__window_input_update();
+
+	//this prevents multiple windows to reset input state
+	int64_t now = window_get_time_ns();
+	if(now - last_input_update > INPUT_UPDATE_TIME_NS){
+		last_input_update = now;
+		__window_input_update();
+	}
 }
 
 void window_close(window_t* window){
@@ -212,7 +221,7 @@ long double window_get_time_s(){
 	return ticks / (long double)1000000000;
 }
 
-void __window_input_update(){//TODO does not support multiple windows: called by window_update()
+void __window_input_update(){
 	if(num_keyboard_states > NUM_KEYBOARD_STATES) FATAL_ERROR("Wrong SDL3 SDL_SCANCODE_COUNT - outdated?");
 	memcpy(keyboard_state_previous, keyboard_state_current, num_keyboard_states * sizeof(bool));
 	mouse_state_previous = mouse_state_current;
