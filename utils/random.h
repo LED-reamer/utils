@@ -11,11 +11,10 @@ uint32_t random_uint32(uint32_t min, uint32_t max);
 int64_t random_int64(int64_t min, int64_t max);
 uint64_t random_uint64(uint64_t min, uint64_t max);
 
-
 typedef struct
 {
 	char string[37];
-}uuid_t;
+} uuid_t;
 uuid_t random_uuid();
 
 uint64_t random_hash_from_string(const char* string);

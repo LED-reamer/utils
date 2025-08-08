@@ -1,23 +1,23 @@
 #include "utils/tools/debugger.h"
 #include "utils/window.h"
 
-int main(void){
+int main(void) {
 	debugger_init();
 	window_t window = window_create("main application", 1920, 1080);
 
 	size_t current_size = 1, next_size = 1;
 	void* data = malloc(current_size);
 
-	while(window_open(&window)){
+	while (window_open(&window)) {
 		debugger_update();
 		window_update(&window);
-		
-		if(key_just_down(&window, KEY_ESCAPE)) window_close(&window);
 
-		if(key_down(&window, KEY_UP)) next_size += 100;
-		if(key_down(&window, KEY_DOWN) && next_size - 100 < next_size) next_size -= 100;
+		if (key_just_down(&window, KEY_ESCAPE)) window_close(&window);
 
-		if(current_size != next_size){
+		if (key_down(&window, KEY_UP)) next_size += 100;
+		if (key_down(&window, KEY_DOWN) && next_size - 100 < next_size) next_size -= 100;
+
+		if (current_size != next_size) {
 			current_size = next_size;
 			data = realloc(data, current_size);
 		}

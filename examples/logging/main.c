@@ -1,8 +1,9 @@
-#include "utils/logging.h"
 #include <stdint.h>
 
-int main(void){
-	LOG("this is a normal log. All logging functions support formating %i and "ANSI_MAGENTA"colors"ANSI_RESET, 123456);
+#include "utils/logging.h"
+
+int main(void) {
+	LOG("this is a normal log. All logging functions support formating %i and " ANSI_MAGENTA "colors" ANSI_RESET, 123456);
 
 	LOG("for debugging you can also log values:");
 	uint8_t a = 1;
@@ -18,13 +19,12 @@ int main(void){
 	LOG_CHAR(e);
 	LOG_SIZE(f);
 
-	//commented since UNREACHABLE exits the program...
-	//switch (a){
+	// commented since UNREACHABLE exits the program...
+	// switch (a){
 	//	case 7: break;
 	//	default: UNREACHABLE("the switch is missing a value!"); break;
-	//}
+	// }
 
-	
 	WARNING("this is warning!");
 	ERROR("this is an error!");
 	FATAL_ERROR("this is a fatal error and the program exits");

@@ -1,8 +1,9 @@
 #pragma once
+#include <SDL3/SDL_gpu.h>
+
 #include "allocator.h"
 #include "types.h"
 #include "window.h"
-#include <SDL3/SDL_gpu.h>
 
 // -= FORWARD DECLARATIONS =-
 typedef struct gpu_context_t gpu_context_t;
@@ -18,7 +19,7 @@ void gpu_context_destroy(gpu_context_t* gpu_context);
 
 // -= RENDER_PASS =-
 
-void gpu_begin(gpu_context_t* ctx, texture_t* target/*NULL for window texture*/, color_t clear_color);
+void gpu_begin(gpu_context_t* ctx, texture_t* target /*NULL for window texture*/, color_t clear_color);
 void gpu_vertex_uniform(gpu_context_t* ctx, uint32_t slot, const void* data, size_t size);
 void gpu_fragment_uniform(gpu_context_t* ctx, uint32_t slot, const void* data, size_t size);
 void gpu_draw(gpu_context_t* ctx, pipeline_t* pipeline, mesh_t* mesh, size_t first_vertex, size_t num_vertices);
@@ -37,7 +38,7 @@ typedef enum {
 	ATTRIBUTE_FLOAT2,
 	ATTRIBUTE_FLOAT3,
 	ATTRIBUTE_FLOAT4,
-}attribute_e;
+} attribute_e;
 
 pipeline_t pipeline_create(gpu_context_t* ctx, shader_t* shader, size_t vertex_size, attribute_e vertex_attribs[], size_t num_attribs);
 void pipeline_destroy(pipeline_t* pipeline);
@@ -47,8 +48,8 @@ void pipeline_destroy(pipeline_t* pipeline);
 texture_t texture_create(gpu_context_t* ctx, uint32_t width, uint32_t height);
 void texture_destroy(texture_t* texture);
 
-//special textures
-//texture_t texture_create_depth(gpu_context_t* ctx, uint32_t width, uint32_t height);
+// special textures
+// texture_t texture_create_depth(gpu_context_t* ctx, uint32_t width, uint32_t height);
 
 // -= MESH =-
 
@@ -56,14 +57,9 @@ mesh_t mesh_create(gpu_context_t* ctx, size_t vertex_size, size_t max_num_vertic
 void mesh_destroy(mesh_t* mesh);
 void mesh_upload(mesh_t* mesh, void* vertices, size_t num_vertices, void* indices, size_t num_indices);
 
-
-
-
-
-
 // -= STRUCT IMPLEMENTATIONS =-
 
-struct gpu_context_t{
+struct gpu_context_t {
 	allocator_t* allocator;
 	window_t* window;
 	SDL_GPUDevice* device;
@@ -74,18 +70,18 @@ struct gpu_context_t{
 	uint32_t current_render_target_width, current_render_target_height;
 };
 
-struct shader_t{
+struct shader_t {
 	gpu_context_t* ctx;
 	SDL_GPUShader* vert;
 	SDL_GPUShader* frag;
 };
 
-struct pipeline_t{
+struct pipeline_t {
 	gpu_context_t* ctx;
 	SDL_GPUGraphicsPipeline* sdl_pipeline;
 };
 
-struct texture_t{
+struct texture_t {
 	gpu_context_t* ctx;
 	SDL_GPUTexture* sdl_texture;
 
@@ -95,7 +91,7 @@ struct texture_t{
 	SDL_GPUColorTargetBlendState blend_state;
 };
 
-struct mesh_t{
+struct mesh_t {
 	gpu_context_t* ctx;
 	SDL_GPUBuffer* vertex_buffer;
 	SDL_GPUBuffer* index_buffer;

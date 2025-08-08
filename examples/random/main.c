@@ -1,8 +1,7 @@
-#include "utils/random.h"
 #include "utils/logging.h"
+#include "utils/random.h"
 
-
-int main(void){
+int main(void) {
 	LOG(ANSI_GREEN "generate some random values" ANSI_RESET);
 	random_set_random_seed();
 	float random_value_float = random_float(0, 100);
@@ -19,7 +18,7 @@ int main(void){
 	LOG_INT64(random_value_int64);
 	LOG_UINT64(random_value_uint64);
 
-	LOG(ANSI_GREEN"generate some guids" ANSI_RESET);
+	LOG(ANSI_GREEN "generate some guids" ANSI_RESET);
 	uuid_t uuid1 = random_uuid();
 	uuid_t uuid2 = random_uuid();
 	uuid_t uuid3 = random_uuid();
@@ -27,14 +26,14 @@ int main(void){
 	LOG("uuid1 = %s", uuid1.string);
 	LOG("uuid2 = %s", uuid2.string);
 	LOG("uuid3 = %s", uuid3.string);
-	
-	LOG(ANSI_GREEN"generating some perlin noise" ANSI_RESET);
+
+	LOG(ANSI_GREEN "generating some perlin noise" ANSI_RESET);
 	random_perlin2d_set_seed(random_uint64(0, UINT64_MAX));
 
-	for(size_t i = 0; i < 20; i++){
+	for (size_t i = 0; i < 20; i++) {
 		printf("%lf, ", random_perlin2d(i, 15, 8, 8));
 	}
 	printf("\n");
-	
+
 	return 0;
 }

@@ -1,6 +1,7 @@
 #include <stdlib.h>
-#include "utils/window.h"
+
 #include "utils/logging.h"
+#include "utils/window.h"
 
 // this is just the basic structure of a single window application
 // for all the functionality see utils/window.h

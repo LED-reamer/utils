@@ -2,30 +2,29 @@
 #include "utils/logging.h"
 #include "utils/tools/memory_tracker.h"
 
-
-int main(void){
+int main(void) {
 	memory_tracker_init(false);
 	buffer_t my_buffer = buffer_create(allocator_get_default());
 
 	char* test_string = "this is a test string";
 	size_t test_string_size = strlen(test_string) + 1 /*null terminator*/;
 
-	//the buffer automatically resizes to fit the string
+	// the buffer automatically resizes to fit the string
 	buffer_copy_data(&my_buffer, test_string, test_string_size);
 
-	//write buffer to file
+	// write buffer to file
 	buffer_write_to_file(&my_buffer, "output.bin");
 
-	if(buffer_load_data_from_file(&my_buffer, "output.bin")){
+	if (buffer_load_data_from_file(&my_buffer, "output.bin")) {
 		LOG("loaded buffer successully from output.bin");
 		LOG("buffer says \"%s\"", (char*)my_buffer.data);
-	}else{
+	} else {
 		ERROR("Could not load buffer from file");
 	}
 	buffer_destroy(&my_buffer);
 
-	//you can also parse binary files:
-	//writing...
+	// you can also parse binary files:
+	// writing...
 	LOG("writing data to file (parsing)");
 	char* write_data1 = "hello";
 	uint32_t write_data2 = 123;
@@ -38,7 +37,7 @@ int main(void){
 	buffer_write_to_file(&write_buffer, "output.bin");
 	buffer_destroy(&write_buffer);
 
-	//reading...
+	// reading...
 	LOG("reading back from file (parsing)");
 
 	buffer_t read_buffer = buffer_create(allocator_get_default());
@@ -46,7 +45,7 @@ int main(void){
 	const char* read_data1 = buffer_read_cstring(&read_buffer);
 	uint32_t read_data2 = buffer_read(&read_buffer, uint32_t);
 	double read_data3 = buffer_read(&read_buffer, double);
-	
+
 	buffer_destroy(&read_buffer);
 	memory_tracker_deinit();
 	return 0;

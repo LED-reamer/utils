@@ -1,7 +1,8 @@
 #include "buffer.h"
+
 #include "logging.h"
 
-buffer_t buffer_create(allocator_t* allocator){
+buffer_t buffer_create(allocator_t* allocator) {
 	buffer_t buffer = (buffer_t){
 		.allocator = allocator,
 	};
@@ -9,51 +10,51 @@ buffer_t buffer_create(allocator_t* allocator){
 	return buffer;
 }
 
-void buffer_destroy(buffer_t* buffer){
+void buffer_destroy(buffer_t* buffer) {
 	buffer_free_data(buffer);
 	*buffer = (buffer_t){0};
 }
 
-void buffer_copy_data(buffer_t* buffer, void* data, size_t size){
+void buffer_copy_data(buffer_t* buffer, void* data, size_t size) {
 	buffer_reserve_memory(buffer, size);
 	memcpy(buffer->data, data, size);
 }
 
-void buffer_reserve_memory(buffer_t* buffer, size_t size){
-	if(buffer->size != size){
-		if(size == 0){
-			if(buffer->data)
+void buffer_reserve_memory(buffer_t* buffer, size_t size) {
+	if (buffer->size != size) {
+		if (size == 0) {
+			if (buffer->data)
 				buffer->allocator->afree(buffer->data);
 			buffer->data = NULL;
 			buffer->size = 0;
-		}else{
+		} else {
 			buffer->data = buffer->allocator->arealloc(buffer->data, size);
 			buffer->size = size;
 		}
 	}
 }
 
-void buffer_free_data(buffer_t* buffer){
+void buffer_free_data(buffer_t* buffer) {
 	buffer_reserve_memory(buffer, 0);
 }
 
-buffer_result_e buffer_load_data_from_file(buffer_t* buffer, const char* filename){
-	FILE *file = fopen(filename, "rb");
-	if(buffer_load_data_from_file_ptr(buffer, file) != BUFFER_OK)
+buffer_result_e buffer_load_data_from_file(buffer_t* buffer, const char* filename) {
+	FILE* file = fopen(filename, "rb");
+	if (buffer_load_data_from_file_ptr(buffer, file) != BUFFER_OK)
 		return BUFFER_ERROR;
 	fclose(file);
 	return BUFFER_OK;
 }
 
-buffer_result_e buffer_load_data_from_file_ptr(buffer_t* buffer, FILE* file){
-	if(file != NULL){
+buffer_result_e buffer_load_data_from_file_ptr(buffer_t* buffer, FILE* file) {
+	if (file != NULL) {
 		fseek(file, 0, SEEK_END);
 		long file_size = ftell(file);
 		fseek(file, 0, SEEK_SET);
-		
+
 		buffer_reserve_memory(buffer, file_size);
 		fread(buffer->data, file_size, 1, file);
-	}else{
+	} else {
 		buffer_free_data(buffer);
 		return BUFFER_ERROR;
 	}
@@ -61,62 +62,60 @@ buffer_result_e buffer_load_data_from_file_ptr(buffer_t* buffer, FILE* file){
 	return BUFFER_OK;
 }
 
-void buffer_write_to_file(buffer_t* buffer, const char* filename){
-	FILE *file = fopen(filename, "wb");
+void buffer_write_to_file(buffer_t* buffer, const char* filename) {
+	FILE* file = fopen(filename, "wb");
 	buffer_write_to_file_ptr(buffer, file);
 	fclose(file);
 }
 
-void buffer_write_to_file_ptr(buffer_t* buffer, FILE* file){
+void buffer_write_to_file_ptr(buffer_t* buffer, FILE* file) {
 	fwrite(buffer->data, buffer->size, 1, file);
 }
 
-uint8_t check_for_read_offset_overflow(buffer_t* buffer, size_t tried_offset){//returns 1 on error
-	if(buffer->read_offset + tried_offset > buffer->size){
+uint8_t check_for_read_offset_overflow(buffer_t* buffer, size_t tried_offset) {	 // returns 1 on error
+	if (buffer->read_offset + tried_offset > buffer->size) {
 		ERROR("Buffer read out of bounds! (You reached the end of the buffer)");
 		return 1;
 	}
 	return 0;
 }
 
-void buffer_set_offset(buffer_t* buffer, size_t new_offset){
-	if(new_offset > buffer->size){
+void buffer_set_offset(buffer_t* buffer, size_t new_offset) {
+	if (new_offset > buffer->size) {
 		ERROR("Could not set new_offset for buffer!");
-	}
-	else
+	} else
 		buffer->read_offset = new_offset;
 }
 
 uint64_t null_int = 0;
-void* buffer_read_buffer(buffer_t* buffer, size_t size){
-	if(!check_for_read_offset_overflow(buffer, size)){
+void* buffer_read_buffer(buffer_t* buffer, size_t size) {
+	if (!check_for_read_offset_overflow(buffer, size)) {
 		void* ptr = buffer->data + buffer->read_offset;
 		buffer->read_offset += size;
 		return ptr;
-	}
-	else
+	} else
 		return &null_int;
 }
 
-const char* buffer_read_cstring(buffer_t* buffer){
-	return buffer_read_buffer(buffer, strlen(buffer->data + buffer->read_offset) + 1/*copy \0*/);
+const char* buffer_read_cstring(buffer_t* buffer) {
+	return buffer_read_buffer(buffer, strlen(buffer->data + buffer->read_offset) + 1 /*copy \0*/);
 }
 
-const char* buffer_read_allocated_cstring(buffer_t* buffer, allocator_t* allocator){
+const char* buffer_read_allocated_cstring(buffer_t* buffer, allocator_t* allocator) {
 	const char* string = buffer_read_cstring(buffer);
 	char* allocated_string = allocator->amalloc(strlen(string) + 1);
 	memcpy(allocated_string, string, strlen(string) + 1);
 	return allocated_string;
 }
 
-void buffer_write_buffer(buffer_t* buffer, void* data, size_t size){
+void buffer_write_buffer(buffer_t* buffer, void* data, size_t size) {
 	buffer_reserve_memory(buffer, buffer->size + size);
-	if(!check_for_read_offset_overflow(buffer, size)){
+	if (!check_for_read_offset_overflow(buffer, size)) {
 		memcpy(buffer->data + buffer->read_offset, data, size);
 		buffer->read_offset += size;
 	}
 }
 
-void buffer_write_cstring(buffer_t* buffer, char* cstring){
-	buffer_write_buffer(buffer, (void*)cstring, strlen(cstring)+1/*include \0*/);
+void buffer_write_cstring(buffer_t* buffer, char* cstring) {
+	buffer_write_buffer(buffer, (void*)cstring, strlen(cstring) + 1 /*include \0*/);
 }

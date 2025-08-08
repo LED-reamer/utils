@@ -1,4 +1,4 @@
-//link with -ldl
+// link with -ldl
 #pragma once
 
 typedef void* dynamic_library_t;

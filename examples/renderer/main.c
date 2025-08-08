@@ -1,9 +1,9 @@
 #include <stdlib.h>
 
 #include "utils/allocator.h"
+#include "utils/renderer.h"
 #include "utils/tools/memory_tracker.h"
 #include "utils/window.h"
-#include "utils/renderer.h"
 
 int main(void) {
 	memory_tracker_init(false);
@@ -17,7 +17,7 @@ int main(void) {
 		window_update(&win);
 
 		renderer_draw_line(vec2(0, 0), mouse_get_position(&win), 5, color(0, 0, 0, 1));
-		//renderer_draw_text("Hello World", mouse_get_position(&win), color(0, 0, 0, 1));
+		// renderer_draw_text("Hello World", mouse_get_position(&win), color(0, 0, 0, 1));
 
 		renderer_render(vec2(window_get_size(&win).x, window_get_size(&win).y), color(1, 1, 1, 1), renderer_get_default_camera());
 

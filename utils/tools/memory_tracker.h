@@ -1,16 +1,15 @@
 #pragma once
-#include <stdlib.h>
-#include <stddef.h>
 #include <stdbool.h>
-
+#include <stddef.h>
+#include <stdlib.h>
 
 #if !defined(NO_MEMORY_DEBUG)
 
 #ifdef malloc
-	#undef malloc
-	#undef realloc
-	#undef calloc
-	#undef free
+#undef malloc
+#undef realloc
+#undef calloc
+#undef free
 #endif
 
 #define malloc(size) dbg_malloc(size, __func__, __FILE__, __LINE__)
@@ -29,4 +28,3 @@ void* dbg_malloc(size_t size, const char* func, const char* file, size_t line);
 void* dbg_realloc(void* ptr, size_t size, const char* func, const char* file, size_t line);
 void* dbg_calloc(size_t nmemb, size_t size, const char* func, const char* file, size_t line);
 void dbg_free(void* ptr, const char* func, const char* file, size_t line);
-
