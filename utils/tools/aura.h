@@ -1,5 +1,5 @@
 #pragma once
-#include "utils/types.h"
+#include "../types.h"
 
 #define AURA_CORNER_VERTICES (16)
 #define AURA_MAX_TEXTURES_PER_FRAME (64)

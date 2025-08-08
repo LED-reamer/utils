@@ -193,6 +193,10 @@ bool window_is_focused(window_t* window){
 		return false;
 }
 
+void window_always_on_top(window_t* window, bool on_top){
+	SDL_SetWindowAlwaysOnTop(window->SDL3_window, on_top);
+}
+
 void window_set_icon(window_t* window, void* pixel_data, uint32_t width, uint32_t height){
 	SDL_Surface* icon = SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_ARGB8888, pixel_data, width * 4);
 	SDL_SetWindowIcon(window->SDL3_window, icon);

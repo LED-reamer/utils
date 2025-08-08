@@ -1,5 +1,5 @@
 #include "aura.h"
-#include "utils/logging.h"
+#include "../logging.h"
 #include <SDL3/SDL_render.h>
 
 #include <stdarg.h> //va list

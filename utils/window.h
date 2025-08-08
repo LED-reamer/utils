@@ -39,6 +39,7 @@ void window_set_position(window_t* window, int32_t x, int32_t y);
 window_mode_e window_get_mode(window_t* window);//warning: WINDOW_MODE_MINIMIZED is not detected reliably!
 void window_set_mode(window_t* window, window_mode_e mode);
 bool window_is_focused(window_t* window);
+void window_always_on_top(window_t* window, bool on_top);
 void window_set_icon(window_t* window, void* pixel_data, uint32_t width, uint32_t height);
 
 int64_t window_get_time_ns();

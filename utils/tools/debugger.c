@@ -147,6 +147,8 @@ void _draw_fps_graph(float* graph, size_t graph_len, float target, rectangle_t d
 	float dx = dest.w / DEBUGGER_FPS_GRAPH_ENTRIES;
 
 	float avg_fps = 0;
+	float min_fps = FLT_MAX;
+	float max_fps = 0;
 
 	float prev_y = 0;
 	for(size_t i = 0; i < DEBUGGER_FPS_GRAPH_ENTRIES; i++){
@@ -157,6 +159,9 @@ void _draw_fps_graph(float* graph, size_t graph_len, float target, rectangle_t d
 		float capped_fps = graph[i];
 		if(capped_fps > target*1.25f) capped_fps = target*1.25f;
 		float y = (capped_fps / (target*1.25f)) * dest.h;
+
+		if(max_fps < graph[i]) max_fps = graph[i];
+		if(min_fps > graph[i]) min_fps = graph[i];
 
 
 		//handle coordinate transform here (destination rect and y down)
@@ -184,7 +189,7 @@ void _draw_fps_graph(float* graph, size_t graph_len, float target, rectangle_t d
 
 	//axis
 	aura_debug_text_fmt(&ctx.aura, vec2(dest.x, dest.y), text_color, "%.1f target", target);
-	aura_debug_text_fmt(&ctx.aura, vec2(dest.x, dest.y + DEBUGGER_SPACING/2), text_color, "%.1f average", avg_fps);
+	aura_debug_text_fmt(&ctx.aura, vec2(dest.x, dest.y + DEBUGGER_SPACING/2), text_color, "%.1ffps average, %.1ffps max, %.1ffps min", avg_fps, max_fps, min_fps);
 }
 
 void graph_add_value(size_t* graph, size_t* graph_len, size_t value, size_t max_entries) {
@@ -214,7 +219,8 @@ void graph_add_float(float* graph, size_t* graph_len, float value, size_t max_en
 void debugger_update(){
 	r128 now = window_get_time_s();
 	if(!window_open(&ctx.window)) return;
-	if(key_just_down(&ctx.window, KEY_SPACE)) window_close(&ctx.window);
+	if(key_just_down(&ctx.window, KEY_ESCAPE)) window_close(&ctx.window);
+	window_always_on_top(&ctx.window, true);
 	window_update(&ctx.window);
 
 	//memory stats
