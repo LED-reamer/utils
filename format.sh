@@ -12,6 +12,6 @@ if [ ! -f "$FILE" ]; then
   exit 1
 fi
 
-clang-format -i -style="{BasedOnStyle: Google, IndentWidth: 4, TabWidth: 4, UseTab: Always}" "$FILE"
+clang-format -i -style="{BasedOnStyle: Google, IndentWidth: 4, TabWidth: 4, UseTab: Always, ColumnLimit: 0}" "$FILE"
 
 echo "formatted: $FILE"
