@@ -4,7 +4,7 @@
 
 
 int main(void){
-	debugger_init(false);
+	memory_tracker_init(false);
 	buffer_t my_buffer = buffer_create(allocator_get_default());
 
 	char* test_string = "this is a test string";
@@ -48,6 +48,6 @@ int main(void){
 	double read_data3 = buffer_read(&read_buffer, double);
 	
 	buffer_destroy(&read_buffer);
-	debugger_deinit();
+	memory_tracker_deinit();
 	return 0;
 }

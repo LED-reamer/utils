@@ -6,7 +6,7 @@
 #include "utils/renderer.h"
 
 int main(void) {
-	debugger_init(false);
+	memory_tracker_init(false);
 	window_t win = window_create("renderer", 800, 600);
 	renderer_init(allocator_get_default(), &win, RENDERER_2D_SHAPES | RENDERER_TEXT);
 
@@ -26,6 +26,6 @@ int main(void) {
 
 	font_destroy(&font);
 	window_destroy(&win);
-	debugger_deinit();
+	memory_tracker_deinit();
 	return 0;
 }

@@ -11,6 +11,10 @@ typedef struct{
 	int32_t w, h;
 
 	bool dark_theme;
+
+	bool keyboard_state_previous[512];//! should be same as SDL_SCANCODE_COUNT
+	uint32_t mouse_state_current;
+	uint32_t mouse_state_previous;
 } window_t;
 
 typedef enum{

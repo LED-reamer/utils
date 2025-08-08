@@ -1,14 +1,11 @@
 #include <stdlib.h>
-
-#include "utils/allocator.h"
-#include "utils/tools/memory_tracker.h"
 #include "utils/window.h"
+#include "utils/logging.h"
 
 // this is just the basic structure of a single window application
 // for all the functionality see utils/window.h
 
 int main(void) {
-	debugger_init(false);
 	window_t win = window_create("window name", 800, 600);
 
 	while (window_open(&win)) {
@@ -18,6 +15,5 @@ int main(void) {
 	}
 
 	window_destroy(&win);
-	debugger_deinit();
 	return 0;
 }

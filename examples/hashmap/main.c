@@ -6,7 +6,7 @@
 
 
 int main(void){
-	debugger_init(false);
+	memory_tracker_init(false);
 	LOG("starting test hashmap:");
 
 	hashmap_t hashmap = hashmap_create(allocator_get_default());
@@ -31,6 +31,6 @@ int main(void){
 	LOG("getting data of 2 (should be 222): %lu", (uint64_t)data);
 	
 	hashmap_destroy(&hashmap);
-	debugger_deinit();
+	memory_tracker_deinit();
 	return 0;
 }

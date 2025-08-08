@@ -7,7 +7,7 @@
 #include <string.h>
 
 int main(void){
-	debugger_init(false);
+	memory_tracker_init(false);
 	const char* filename = "simple_font.ttf";
 
 	font_t font = font_create_from_file(allocator_get_default(), filename, 24.0f);
@@ -33,6 +33,6 @@ int main(void){
 
 	font_destroy(&font);
 
-	debugger_deinit();
+	memory_tracker_deinit();
 	return 0;
 }

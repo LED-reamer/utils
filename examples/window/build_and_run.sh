@@ -1,1 +1,1 @@
-gcc main.c ../../utils/allocator.c ../../utils/window.c ../../utils/tools/memory_tracker.c -lSDL3 -I../../ -o example && ./example
+gcc main.c ../../utils/window.c -lSDL3 -I../../ -o example && ./example

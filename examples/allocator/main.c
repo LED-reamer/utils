@@ -16,7 +16,7 @@ allocator_t my_custom_allocator = (allocator_t){
 };
 
 int main(void){
-	debugger_init(true);
+	memory_tracker_init(true);
 	// -= default allocator =-
 	allocator_t* my_allocator = allocator_get_default();
 
@@ -40,6 +40,6 @@ int main(void){
 
 	//functions that allocate memory should always ask for an allocator_t*
 	// example: buffer_create(allocator_t* allocator, ...)
-	debugger_deinit();
+	memory_tracker_deinit();
 	return 0;
 }

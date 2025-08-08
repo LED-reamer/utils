@@ -20,10 +20,10 @@
 
 #endif
 
-void debugger_init(bool live_log);
-void debugger_deinit();
+void memory_tracker_init(bool live_log);
+void memory_tracker_deinit();
 
-void debugger_get_stats(size_t* currently_allocated, size_t* max_allocated);
+void memory_tracker_get_stats(size_t* currently_allocated, size_t* max_allocated);
 
 void* dbg_malloc(size_t size, const char* func, const char* file, size_t line);
 void* dbg_realloc(void* ptr, size_t size, const char* func, const char* file, size_t line);

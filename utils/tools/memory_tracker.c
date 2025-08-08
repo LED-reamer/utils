@@ -23,7 +23,7 @@ typedef struct{
 static allocation_info_t* infos = NULL;
 static size_t num_infos = 0;
 
-void debugger_init(bool live_log){
+void memory_tracker_init(bool live_log){
 	ctx = (debugger_data_t){
 		.live_log = live_log,
 	};
@@ -47,7 +47,7 @@ void analyse_allocations(){
 	ERROR("=> summary: "ANSI_RED"%zu leaks"ANSI_RESET" of "ANSI_RED"%zu bytes"ANSI_RESET, sum_memory_leaks, sum_leaked_memory);
 }
 
-void debugger_deinit(){
+void memory_tracker_deinit(){
 	analyse_allocations();
 	if(num_infos != 0 && infos == NULL) {ERROR("memory leak in memory_tracker!"); return;};
 	if(num_infos != 0)
@@ -55,7 +55,7 @@ void debugger_deinit(){
 	ctx = (debugger_data_t){0};
 }
 
-void debugger_get_stats(size_t* currently_allocated, size_t* max_allocated){
+void memory_tracker_get_stats(size_t* currently_allocated, size_t* max_allocated){
 	*currently_allocated = ctx.currently_allocated;
 	*max_allocated = ctx.max_allocated;
 }

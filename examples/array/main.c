@@ -3,7 +3,7 @@
 #include "utils/tools/memory_tracker.h"
 
 int main(void){
-	debugger_init(false);
+	memory_tracker_init(false);
 	//second parameter is the element type (this is a macro)
 	//third parameter defines how many items should already exist in the array
 	//second parameter defines how many items should fit in a chunk
@@ -31,6 +31,6 @@ int main(void){
 	}
 
 	array_destroy(my_array);
-	debugger_deinit();
+	memory_tracker_deinit();
 	return 0;
 }

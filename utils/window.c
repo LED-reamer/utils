@@ -11,16 +11,10 @@
 
 uint32_t num_windows = 0;
 const bool* keyboard_state_current = NULL;
-bool keyboard_state_previous[NUM_KEYBOARD_STATES];
 int32_t num_keyboard_states = 0;
-uint32_t mouse_state_current = 0;
-uint32_t mouse_state_previous = 0;
 float __mouse_x = 0, __mouse_y = 0, mouse_dx = 0, mouse_dy = 0, mouse_x_scroll = 0, mouse_y_scroll = 0;
 SDL_Cursor* current_cursor = NULL;
 SDL_WindowID window_to_close;
-
-int64_t last_input_update = 0;
-#define INPUT_UPDATE_TIME_NS 1000000 //1 ms
 
 //forward declaration
 void __window_input_update();
@@ -124,12 +118,7 @@ bool window_open(window_t* window){
 void window_update(window_t* window){
 	if(window_to_close == SDL_GetWindowID(window->SDL3_window)) return window_close(window);
 
-	//this prevents multiple windows to reset input state
-	int64_t now = window_get_time_ns();
-	if(now - last_input_update > INPUT_UPDATE_TIME_NS){
-		last_input_update = now;
-		__window_input_update();
-	}
+	__window_input_update(window);
 }
 
 void window_close(window_t* window){
@@ -198,7 +187,7 @@ void window_set_mode(window_t* window, window_mode_e mode){
 
 bool window_is_focused(window_t* window){
 	SDL_WindowFlags flags = SDL_GetWindowFlags(window->SDL3_window);
-	if(flags & SDL_WINDOW_INPUT_FOCUS || flags & SDL_WINDOW_MOUSE_FOCUS)
+	if(flags & SDL_WINDOW_INPUT_FOCUS/* || flags & SDL_WINDOW_MOUSE_FOCUS*/)
 		return true;
 	else
 		return false;
@@ -221,11 +210,12 @@ long double window_get_time_s(){
 	return ticks / (long double)1000000000;
 }
 
-void __window_input_update(){
-	if(num_keyboard_states > NUM_KEYBOARD_STATES) FATAL_ERROR("Wrong SDL3 SDL_SCANCODE_COUNT - outdated?");
-	memcpy(keyboard_state_previous, keyboard_state_current, num_keyboard_states * sizeof(bool));
-	mouse_state_previous = mouse_state_current;
-	mouse_state_current = SDL_GetMouseState(&__mouse_x, &__mouse_y);
+void __window_input_update(window_t* window){
+	if(num_keyboard_states != NUM_KEYBOARD_STATES) FATAL_ERROR("Wrong SDL3 SDL_SCANCODE_COUNT - outdated?");
+	if(sizeof(window->keyboard_state_previous) != NUM_KEYBOARD_STATES) FATAL_ERROR("Wrong window->keyboard_state_previous static size");
+	memcpy(window->keyboard_state_previous, keyboard_state_current, num_keyboard_states * sizeof(bool));
+	window->mouse_state_previous = window->mouse_state_current;
+	window->mouse_state_current = SDL_GetMouseState(&__mouse_x, &__mouse_y);
 	SDL_GetRelativeMouseState(&mouse_dx, &mouse_dy);
 
 	//reset
@@ -257,32 +247,32 @@ bool key_down(window_t* window, key_e key){
 
 bool key_just_down(window_t* window, key_e key){
 	SDL_Scancode scancode = SDL_GetScancodeFromKey(key, NULL);
-	if(keyboard_state_current[scancode] && !keyboard_state_previous[scancode] && window_is_focused(window))
+	if(keyboard_state_current[scancode] && !window->keyboard_state_previous[scancode] && window_is_focused(window))
 		return true;
 	return false;
 }
 
 bool key_just_released(window_t* window, key_e key){
 	SDL_Scancode scancode = SDL_GetScancodeFromKey(key, NULL);
-	if(!keyboard_state_current[scancode] && keyboard_state_previous[scancode] && window_is_focused(window))
+	if(!keyboard_state_current[scancode] && window->keyboard_state_previous[scancode] && window_is_focused(window))
 		return true;
 	return false;
 }
 
 bool mouse_button_down(window_t* window, mouse_button_e mouse_button){
-	if(mouse_state_current & SDL_BUTTON_MASK(mouse_button) && window_is_focused(window))
+	if(window->mouse_state_current & SDL_BUTTON_MASK(mouse_button) && window_is_focused(window))
 		return true;
 	return false;
 }
 
 bool mouse_button_just_down(window_t* window, mouse_button_e mouse_button){
-	if((mouse_state_current & SDL_BUTTON_MASK(mouse_button)) && !(mouse_state_previous & SDL_BUTTON_MASK(mouse_button)) && window_is_focused(window))
+	if((window->mouse_state_current & SDL_BUTTON_MASK(mouse_button)) && !(window->mouse_state_previous & SDL_BUTTON_MASK(mouse_button)) && window_is_focused(window))
 		return true;
 	return false;
 }
 
 bool mouse_button_just_released(window_t* window, mouse_button_e mouse_button){
-	if(!(mouse_state_current & SDL_BUTTON_MASK(mouse_button)) && (mouse_state_previous & SDL_BUTTON_MASK(mouse_button)) && window_is_focused(window))
+	if(!(window->mouse_state_current & SDL_BUTTON_MASK(mouse_button)) && (window->mouse_state_previous & SDL_BUTTON_MASK(mouse_button)) && window_is_focused(window))
 		return true;
 	return false;
 }

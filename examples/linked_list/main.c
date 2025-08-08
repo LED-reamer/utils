@@ -6,7 +6,7 @@
 //this is not all the functionality. see linked_list.h
 
 int main(void){
-	debugger_init(false);
+	memory_tracker_init(false);
 	LOG("starting test linked_list:");
 
 	linked_list_t list = linked_list_create(allocator_get_default());
@@ -39,6 +39,6 @@ int main(void){
 	linked_list_clear(&list);
 	
 	linked_list_destroy(&list);
-	debugger_deinit();
+	memory_tracker_deinit();
 	return 0;
 }
