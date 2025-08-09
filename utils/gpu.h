@@ -22,6 +22,7 @@ void gpu_context_destroy(gpu_context_t* gpu_context);
 void gpu_begin(gpu_context_t* ctx, texture_t* target /*NULL for window texture*/, color_t clear_color);
 void gpu_vertex_uniform(gpu_context_t* ctx, uint32_t slot, const void* data, size_t size);
 void gpu_fragment_uniform(gpu_context_t* ctx, uint32_t slot, const void* data, size_t size);
+void gpu_fragment_samplers(gpu_context_t* ctx, texture_t* textures, size_t num_textures);
 void gpu_draw(gpu_context_t* ctx, pipeline_t* pipeline, mesh_t* mesh, size_t first_vertex, size_t num_vertices);
 void gpu_draw_indexed(gpu_context_t* ctx, pipeline_t* pipeline, mesh_t* mesh, size_t first_index, size_t num_indecies);
 void gpu_end(gpu_context_t* ctx);
@@ -45,11 +46,26 @@ void pipeline_destroy(pipeline_t* pipeline);
 
 // -= TEXTURE =-
 
-texture_t texture_create(gpu_context_t* ctx, uint32_t width, uint32_t height);
-void texture_destroy(texture_t* texture);
+typedef enum {
+	TEXTURE_FORMAT_GREY_8BIT,
+	TEXTURE_FORMAT_RGBA_8BIT,
+	
+	TEXTURE_FORMAT_GREY_FLOAT32,
+	TEXTURE_FORMAT_RGBA_FLOAT32,
 
-// special textures
-// texture_t texture_create_depth(gpu_context_t* ctx, uint32_t width, uint32_t height);
+	TEXTURE_FORMAT_DEPTH_16BIT,
+	TEXTURE_FORMAT_DEPTH_24BIT,
+	TEXTURE_FORMAT_DEPTH_FLOAT32,
+} texture_format_e;
+
+typedef enum {
+	TEXTURE_FILTERING_NEAREST,
+	TEXTURE_FILTERING_LINEAR,
+} texture_filtering_e;
+
+texture_t texture_create(gpu_context_t* ctx, uint32_t width, uint32_t height, texture_format_e format, texture_filtering_e filtering);
+void texture_destroy(texture_t* texture);
+void texture_upload(texture_t* texture, void* data, size_t size);
 
 // -= MESH =-
 
@@ -68,6 +84,10 @@ struct gpu_context_t {
 	SDL_GPUTexture* current_render_target;
 	SDL_GPUTexture* depth_texture;
 	uint32_t current_render_target_width, current_render_target_height;
+
+	//both are repeating
+	SDL_GPUSampler* linear_sampler;
+	SDL_GPUSampler* nearest_sampler;
 };
 
 struct shader_t {
@@ -89,6 +109,7 @@ struct texture_t {
 
 	SDL_GPUTextureFormat format;
 	SDL_GPUColorTargetBlendState blend_state;
+	texture_filtering_e filtering;
 };
 
 struct mesh_t {

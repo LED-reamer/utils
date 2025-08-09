@@ -26,12 +26,30 @@ gpu_context_t gpu_context_create(allocator_t* allocator, window_t* window) {
 
 	SDL_SetGPUSwapchainParameters(ctx.device, ctx.window->SDL3_window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC);
 
+
+	//init default samplers
+	SDL_GPUSamplerCreateInfo sampler_create_info = (SDL_GPUSamplerCreateInfo){
+		.min_filter = SDL_GPU_FILTER_LINEAR, 
+		.mag_filter = SDL_GPU_FILTER_LINEAR, 
+		.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
+		.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+		.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+	};
+	ctx.linear_sampler = SDL_CreateGPUSampler(ctx.device, &sampler_create_info);
+	sampler_create_info.min_filter = SDL_GPU_FILTER_NEAREST;
+	sampler_create_info.mag_filter = SDL_GPU_FILTER_NEAREST;
+	sampler_create_info.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
+	ctx.nearest_sampler = SDL_CreateGPUSampler(ctx.device, &sampler_create_info);
+
 	return ctx;
 }
 
 void gpu_context_destroy(gpu_context_t* gpu_context) {
 	if (gpu_context->depth_texture != NULL) SDL_ReleaseGPUTexture(gpu_context->device, gpu_context->depth_texture);
-
+	
+	SDL_ReleaseGPUSampler(gpu_context->device, gpu_context->linear_sampler);
+	SDL_ReleaseGPUSampler(gpu_context->device, gpu_context->nearest_sampler);
+	
 	SDL_ReleaseWindowFromGPUDevice(gpu_context->device, gpu_context->window->SDL3_window);
 	SDL_DestroyGPUDevice(gpu_context->device);
 }
@@ -94,6 +112,21 @@ void gpu_vertex_uniform(gpu_context_t* ctx, uint32_t slot, const void* data, siz
 
 void gpu_fragment_uniform(gpu_context_t* ctx, uint32_t slot, const void* data, size_t size) {
 	SDL_PushGPUFragmentUniformData(ctx->cmd_buf, slot, data, size);
+}
+
+void gpu_fragment_samplers(gpu_context_t* ctx, texture_t* textures, size_t num_textures) {
+	SDL_GPUTextureSamplerBinding* texture_sampler_bindings = ctx->allocator->amalloc(num_textures * sizeof(SDL_GPUTextureSamplerBinding));
+	for(size_t i = 0; i < num_textures; i++){
+		texture_sampler_bindings[i].texture = textures[i].sdl_texture;
+		if(textures[i].filtering == TEXTURE_FILTERING_NEAREST)
+			texture_sampler_bindings[i].sampler = ctx->nearest_sampler;
+		else
+			texture_sampler_bindings[i].sampler = ctx->linear_sampler;
+	}
+	
+	SDL_BindGPUFragmentSamplers(ctx->render_pass, 0, texture_sampler_bindings, num_textures);
+	
+	ctx->allocator->afree(texture_sampler_bindings);
 }
 
 void gpu_draw(gpu_context_t* ctx, pipeline_t* pipeline, mesh_t* mesh, size_t first_vertex, size_t num_vertices) {
@@ -200,12 +233,24 @@ void shader_destroy(shader_t* shader) {
 	SDL_ReleaseGPUShader(shader->ctx->device, shader->frag);
 }
 
-texture_t texture_create(gpu_context_t* ctx, uint32_t width, uint32_t height) {
-	SDL_GPUTextureFormat format = __DEFAULT_TEXTURE_FORMAT;	 // TODO let user specify in texture_create
+static SDL_GPUTextureFormat texture_format_enum_mapping[] = {
+    [TEXTURE_FORMAT_GREY_8BIT]           = SDL_GPU_TEXTUREFORMAT_R8_UNORM,
+    [TEXTURE_FORMAT_RGBA_8BIT]           = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
+
+    [TEXTURE_FORMAT_GREY_FLOAT32]        = SDL_GPU_TEXTUREFORMAT_R32_FLOAT,
+    [TEXTURE_FORMAT_RGBA_FLOAT32]        = SDL_GPU_TEXTUREFORMAT_R32G32B32A32_FLOAT,
+
+    [TEXTURE_FORMAT_DEPTH_16BIT]         = SDL_GPU_TEXTUREFORMAT_D16_UNORM,
+    [TEXTURE_FORMAT_DEPTH_24BIT]         = SDL_GPU_TEXTUREFORMAT_D24_UNORM,
+    [TEXTURE_FORMAT_DEPTH_FLOAT32]       = SDL_GPU_TEXTUREFORMAT_D32_FLOAT,
+};
+
+texture_t texture_create(gpu_context_t* ctx, uint32_t width, uint32_t height, texture_format_e format, texture_filtering_e filtering) {
+	SDL_GPUTextureFormat sdl_format = texture_format_enum_mapping[format];
 
 	SDL_GPUTextureCreateInfo texture_create_info = {
 		.type = SDL_GPU_TEXTURETYPE_2D,
-		.format = format,
+		.format = sdl_format,
 		.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET,
 		.width = width,
 		.height = height,
@@ -215,6 +260,14 @@ texture_t texture_create(gpu_context_t* ctx, uint32_t width, uint32_t height) {
 		.props = 1,	 // docs say this needs to be 0, but then theres an error: "Parameter 'src' is invalid" since it tries to copy props parameter and it's 0/NULL. See source code SDL_gpu_vulkan.c and SDL_properties.c. Don't know what '1' does
 	};
 
+	SDL_GPUColorComponentFlags color_write_mask = 0;
+	bool needs_blending = false;
+	if(format == TEXTURE_FORMAT_RGBA_8BIT || format == TEXTURE_FORMAT_RGBA_FLOAT32){
+		color_write_mask = SDL_GPU_COLORCOMPONENT_R | SDL_GPU_COLORCOMPONENT_G | SDL_GPU_COLORCOMPONENT_B | SDL_GPU_COLORCOMPONENT_A;
+		needs_blending = true;
+	}
+		
+
 	SDL_GPUColorTargetBlendState blend_state = {
 		.src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA,
 		.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
@@ -222,8 +275,8 @@ texture_t texture_create(gpu_context_t* ctx, uint32_t width, uint32_t height) {
 		.src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE,
 		.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
 		.alpha_blend_op = SDL_GPU_BLENDOP_ADD,
-		.color_write_mask = SDL_GPU_COLORCOMPONENT_R | SDL_GPU_COLORCOMPONENT_G | SDL_GPU_COLORCOMPONENT_B | SDL_GPU_COLORCOMPONENT_A,
-		.enable_blend = true,
+		.color_write_mask = color_write_mask,
+		.enable_blend = needs_blending,
 		.enable_color_write_mask = false,
 	};
 
@@ -232,8 +285,9 @@ texture_t texture_create(gpu_context_t* ctx, uint32_t width, uint32_t height) {
 		.sdl_texture = SDL_CreateGPUTexture(ctx->device, &texture_create_info),
 		.w = width,
 		.h = height,
-		.format = format,
+		.format = sdl_format,
 		.blend_state = blend_state,
+		.filtering = filtering,
 	};
 
 	return texture;
@@ -241,6 +295,49 @@ texture_t texture_create(gpu_context_t* ctx, uint32_t width, uint32_t height) {
 
 void texture_destroy(texture_t* texture) {
 	SDL_ReleaseGPUTexture(texture->ctx->device, texture->sdl_texture);
+}
+
+void texture_upload(texture_t* texture, void* data, size_t size){
+	SDL_GPUCommandBuffer* command_buffer = SDL_AcquireGPUCommandBuffer(texture->ctx->device);
+	SDL_GPUCopyPass* copy_pass = SDL_BeginGPUCopyPass(command_buffer);
+
+	//transfer_buffer
+	SDL_GPUTransferBufferCreateInfo transfer_buffer_create_info = (SDL_GPUTransferBufferCreateInfo){
+		.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+		.size = size,
+	};
+	SDL_GPUTransferBuffer* transfer_buffer = SDL_CreateGPUTransferBuffer(texture->ctx->device, &transfer_buffer_create_info );
+	//mapping and copying
+	void* mapped_data = SDL_MapGPUTransferBuffer(texture->ctx->device, transfer_buffer, false);
+	memcpy(mapped_data, data, size);
+	SDL_UnmapGPUTransferBuffer(texture->ctx->device, transfer_buffer);
+
+	//source
+	SDL_GPUTextureTransferInfo source = (SDL_GPUTextureTransferInfo){
+		.transfer_buffer = transfer_buffer,
+		//.offset = 0,
+		//.pixels_per_row = texture->w,
+		//.rows_per_layer = 1,
+	};
+
+	//destination
+	SDL_GPUTextureRegion destination = (SDL_GPUTextureRegion){
+		.texture = texture->sdl_texture,
+		.mip_level = 0,
+		.layer = 0,
+		.x = 0,
+		.y = 0,
+		.z = 0,
+		.w = texture->w,
+		.h = texture->h,
+		.d = 1,
+	};
+
+	//upload
+	SDL_UploadToGPUTexture(copy_pass, &source, &destination, false/*cylce*/);
+	SDL_ReleaseGPUTransferBuffer(texture->ctx->device, transfer_buffer);
+	SDL_EndGPUCopyPass(copy_pass);
+	SDL_SubmitGPUCommandBuffer(command_buffer);
 }
 
 pipeline_t pipeline_create(gpu_context_t* ctx, shader_t* shader, size_t vertex_size, attribute_e vertex_attribs[], size_t num_attribs) {
