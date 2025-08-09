@@ -13,7 +13,8 @@ int main(void) {
 	window_t win = window_create("renderer", 800, 600);
 	renderer_init(allocator_get_default(), &win, RENDERER_2D_SHAPES | RENDERER_TEXT);
 
-	font_t font = font_create_from_file(allocator_get_default(), "simple_font.ttf", 24.0f);
+	//font_t font = font_create_from_file(allocator_get_default(), "simple_font.ttf", 128.0f);
+	font_t font = font_create_from_file(allocator_get_default(), "second_font.ttf", 128.0f);
 	renderer_set_font(&font);
 
 	while (window_open(&win)) {

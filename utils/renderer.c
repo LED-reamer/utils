@@ -5,6 +5,7 @@
 #include "arena.h"
 #include "gpu.h"
 #include "logging.h"
+#include "buffer.h"//TODO TEMP remove when direct shader loading is not needed anymore
 
 typedef struct {
 	vec2_t position;
@@ -383,7 +384,7 @@ void main()
    v_color = a_color;
 }
 */
-static const uint8_t text_vert[1448] = {
+/*static const uint8_t text_vert[1448] = {
 	0x03, 0x02, 0x23, 0x07, 0x00, 0x00, 0x01, 0x00, 0x0a, 0x00, 0x08, 0x00, 0x2e, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x06, 0x00,
 	0x01, 0x00, 0x00, 0x00, 0x47, 0x4c, 0x53, 0x4c, 0x2e, 0x73, 0x74, 0x64, 0x2e, 0x34, 0x35, 0x30,
@@ -474,7 +475,7 @@ static const uint8_t text_vert[1448] = {
 	0x29, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00, 0x3e, 0x00, 0x03, 0x00, 0x27, 0x00, 0x00, 0x00,
 	0x29, 0x00, 0x00, 0x00, 0x3d, 0x00, 0x04, 0x00, 0x07, 0x00, 0x00, 0x00, 0x2d, 0x00, 0x00, 0x00,
 	0x2c, 0x00, 0x00, 0x00, 0x3e, 0x00, 0x03, 0x00, 0x2a, 0x00, 0x00, 0x00, 0x2d, 0x00, 0x00, 0x00,
-	0xfd, 0x00, 0x01, 0x00, 0x38, 0x00, 0x01, 0x00};
+	0xfd, 0x00, 0x01, 0x00, 0x38, 0x00, 0x01, 0x00};*/
 /*
 #version 460
 layout (location = 0) in vec2 v_uv;
@@ -493,7 +494,7 @@ void main(){
    FragColor = vec4(dist, dist, dist, 1.0);
 }
 */
-static const uint8_t text_frag[1000]  = {
+/*static const uint8_t text_frag[1000]  = {
   0x03, 0x02, 0x23, 0x07, 0x00, 0x00, 0x01, 0x00, 0x0a, 0x00, 0x08, 0x00, 0x23, 0x00, 0x00, 0x00, 
   0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x06, 0x00, 
   0x01, 0x00, 0x00, 0x00, 0x47, 0x4c, 0x53, 0x4c, 0x2e, 0x73, 0x74, 0x64, 0x2e, 0x34, 0x35, 0x30, 
@@ -557,7 +558,7 @@ static const uint8_t text_frag[1000]  = {
   0x1d, 0x00, 0x00, 0x00, 0x19, 0x00, 0x00, 0x00, 0x1a, 0x00, 0x00, 0x00, 0x1b, 0x00, 0x00, 0x00, 
   0x1c, 0x00, 0x00, 0x00, 0x3e, 0x00, 0x03, 0x00, 0x18, 0x00, 0x00, 0x00, 0x1d, 0x00, 0x00, 0x00, 
   0xfd, 0x00, 0x01, 0x00, 0x38, 0x00, 0x01, 0x00
-};
+};*/
 
 void renderer_init(allocator_t* allocator, window_t* window, renderer_e renderer_flags) {
 	if (renderer_flags != 0)
@@ -583,7 +584,16 @@ void renderer_init(allocator_t* allocator, window_t* window, renderer_e renderer
 	}
 	if (renderer_flags & RENDERER_TEXT) {
 		renderer_text.allocator = allocator;
-		renderer_text.shader = shader_create(&ctx, (uint8_t*)text_vert, 1448, 0, 0, 0, 1, (uint8_t*)text_frag, 1000, 1, 0, 0, 1);
+
+		buffer_t frag_buf = buffer_create(allocator);
+		buffer_t vert_buf = buffer_create(allocator);
+		buffer_load_data_from_file(&frag_buf, "shaders/compiled/text.frag.spv");
+		buffer_load_data_from_file(&vert_buf, "shaders/compiled/text.vert.spv");
+		renderer_text.shader = shader_create(&ctx, (uint8_t*)vert_buf.data, vert_buf.size, 0, 0, 0, 1, (uint8_t*)frag_buf.data, frag_buf.size, 1, 0, 0, 1);
+		buffer_destroy(&frag_buf);
+		buffer_destroy(&vert_buf);
+
+		
 		renderer_text.mesh = mesh_create(&ctx, sizeof(vertex_text_t), MAX_BUFFER_VERTICES, 0, 0);
 		renderer_text.pipeline = pipeline_create(&ctx, &renderer_text.shader, sizeof(vertex_text_t), (attribute_e[]){ATTRIBUTE_FLOAT2, ATTRIBUTE_FLOAT2, ATTRIBUTE_FLOAT4}, 3);
 		renderer_text.vertex_arena = arena_create(renderer_text.allocator, VERTEX_ARENA_BLOCK_SIZE, 0);
@@ -667,7 +677,7 @@ void renderer_render(vec2_t screen_size, color_t clear_color, camera_t camera) {
 			if (renderer_text.vertex_arena.current_pos != renderer_text.vertex_arena.data)
 				mesh_upload(&renderer_text.mesh, renderer_text.vertex_arena.data, (renderer_text.vertex_arena.current_pos - renderer_text.vertex_arena.data) / sizeof(vertex_text_t), NULL, 0);
 			gpu_vertex_uniform(&ctx, 0, projection.m16, sizeof(mat4x4_t));
-			float smoothing_uniform = 0.6f;
+			float smoothing_uniform = 0.09f;
 			gpu_fragment_uniform(&ctx, 0, &smoothing_uniform, sizeof(float));
 			gpu_fragment_samplers(&ctx, (texture_t[]){current_font_texture}, 1);
 			if (renderer_text.vertex_arena.current_pos != renderer_text.vertex_arena.data)
@@ -876,14 +886,14 @@ void renderer_set_font(font_t* font) {
 	current_font_texture = texture_create(&ctx, current_font->atlas_width, current_font->atlas_height, TEXTURE_FORMAT_GREY_8BIT, TEXTURE_FILTERING_LINEAR);
 
 	//convert uint8_t image to f32
-	float* float_atlas = ctx.allocator->amalloc(current_font->atlas_width * current_font->atlas_height * sizeof(float));
-	for (size_t i = 0; i < current_font->atlas_width * current_font->atlas_height; i++) {
-	    float_atlas[i] = (float)current_font->atlas[i] / 255.0f;
-	}
+	//float* float_atlas = ctx.allocator->amalloc(current_font->atlas_width * current_font->atlas_height * sizeof(float));
+	//for (size_t i = 0; i < current_font->atlas_width * current_font->atlas_height; i++) {
+	//    float_atlas[i] = (float)current_font->atlas[i] / 255.0f;
+	//}
 	
-	//texture_upload(&current_font_texture, (void*)current_font->atlas, current_font->atlas_width * current_font->atlas_height);
-	texture_upload(&current_font_texture, (void*)float_atlas, current_font->atlas_width * current_font->atlas_height * sizeof(float));
-	ctx.allocator->afree(float_atlas);
+	texture_upload(&current_font_texture, (void*)current_font->atlas, current_font->atlas_width * current_font->atlas_height);
+	//texture_upload(&current_font_texture, (void*)float_atlas, current_font->atlas_width * current_font->atlas_height * sizeof(float));
+	//ctx.allocator->afree(float_atlas);
 }
 
 void renderer_draw_text(const char* string, vec2_t pos, color_t color) {
@@ -901,35 +911,40 @@ void renderer_draw_text(const char* string, vec2_t pos, color_t color) {
 	int32_t y_offset = pos.y;
 
 	for (size_t i = 0; i < strlen(string); i++) {
-		glyph_t* glyph = font_get_glyph(current_font, (uint32_t)string[i]);
-		if (!glyph) continue;
-
 		if (string[i] == '\n') {
 			x_offset = pos.x;
 			y_offset += current_font->line_height;
 			continue;
 		}
+		if(string[i] == ' '){
+			//x_offset += current_font->space_width;//TODO add font space width!
+			continue;
+		}
+		
+		glyph_t* glyph = font_get_glyph(current_font, (uint32_t)string[i]);
+		if (!glyph) continue;
+
 
 		vertex_text_t* vertices = arena_allocate(&renderer_text.vertex_arena, sizeof(vertex_text_t) * 6);
 
 		vertices[0] = (vertex_text_t){.position = vec2(x_offset + glyph->left_space, y_offset),
-									  .uv = vec2(glyph->src_x / current_font->atlas_width, glyph->src_y / current_font->atlas_width),
+									  .uv = vec2((float)glyph->src_x / current_font->atlas_width, (float)glyph->src_y / current_font->atlas_width),
 									  .color = color};	// top-left
 		vertices[1] = (vertex_text_t){.position = vec2(x_offset + glyph->left_space, y_offset + current_font->font_size),
-									  .uv = vec2(glyph->src_x / current_font->atlas_width, (glyph->src_y + glyph->src_height) / current_font->atlas_width),
+									  .uv = vec2((float)glyph->src_x / current_font->atlas_width, (float)(glyph->src_y + glyph->src_height) / current_font->atlas_width),
 									  .color = color};	// bottom-left
 		vertices[2] = (vertex_text_t){.position = vec2(x_offset + glyph->advance_width, y_offset + current_font->font_size),
-									  .uv = vec2((glyph->src_x + glyph->src_width) / current_font->atlas_width, (glyph->src_y + glyph->src_height) / current_font->atlas_width),
+									  .uv = vec2((float)(glyph->src_x + glyph->src_width) / current_font->atlas_width, (float)(glyph->src_y + glyph->src_height) / current_font->atlas_width),
 									  .color = color};	// bottom-right
 
 		vertices[3] = (vertex_text_t){.position = vec2(x_offset + glyph->left_space, y_offset),
-									  .uv = vec2(glyph->src_x / current_font->atlas_width, glyph->src_y / current_font->atlas_width),
+									  .uv = vec2((float)glyph->src_x / current_font->atlas_width, (float)glyph->src_y / current_font->atlas_width),
 									  .color = color};	// top-left
 		vertices[4] = (vertex_text_t){.position = vec2(x_offset + glyph->advance_width, y_offset + current_font->font_size),
-									  .uv = vec2((glyph->src_x + glyph->src_width) / current_font->atlas_width, (glyph->src_y + glyph->src_height) / current_font->atlas_width),
+									  .uv = vec2((float)(glyph->src_x + glyph->src_width) / current_font->atlas_width, (float)(glyph->src_y + glyph->src_height) / current_font->atlas_width),
 									  .color = color};	// bottom-right
 		vertices[5] = (vertex_text_t){.position = vec2(x_offset + glyph->advance_width, y_offset),
-									  .uv = vec2((glyph->src_x + glyph->src_width) / current_font->atlas_width, glyph->src_y / current_font->atlas_width),
+									  .uv = vec2((float)(glyph->src_x + glyph->src_width) / current_font->atlas_width, (float)glyph->src_y / current_font->atlas_width),
 									  .color = color};	// top-right
 
 		x_offset += glyph->advance_width;
