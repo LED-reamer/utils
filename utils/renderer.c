@@ -884,16 +884,7 @@ void renderer_draw_cylinder(vec3_t pos1, vec3_t pos2, float radius, color_t colo
 void renderer_set_font(font_t* font) {
 	current_font = font;
 	current_font_texture = texture_create(&ctx, current_font->atlas_width, current_font->atlas_height, TEXTURE_FORMAT_GREY_8BIT, TEXTURE_FILTERING_LINEAR);
-
-	//convert uint8_t image to f32
-	//float* float_atlas = ctx.allocator->amalloc(current_font->atlas_width * current_font->atlas_height * sizeof(float));
-	//for (size_t i = 0; i < current_font->atlas_width * current_font->atlas_height; i++) {
-	//    float_atlas[i] = (float)current_font->atlas[i] / 255.0f;
-	//}
-	
 	texture_upload(&current_font_texture, (void*)current_font->atlas, current_font->atlas_width * current_font->atlas_height);
-	//texture_upload(&current_font_texture, (void*)float_atlas, current_font->atlas_width * current_font->atlas_height * sizeof(float));
-	//ctx.allocator->afree(float_atlas);
 }
 
 void renderer_draw_text(const char* string, vec2_t pos, color_t color) {
@@ -926,25 +917,30 @@ void renderer_draw_text(const char* string, vec2_t pos, color_t color) {
 
 
 		vertex_text_t* vertices = arena_allocate(&renderer_text.vertex_arena, sizeof(vertex_text_t) * 6);
+		
+		float uv_rect[4];
+		font_get_glyph_uv(current_font, glyph, uv_rect);
 
-		vertices[0] = (vertex_text_t){.position = vec2(x_offset + glyph->left_space, y_offset),
-									  .uv = vec2((float)glyph->src_x / current_font->atlas_width, (float)glyph->src_y / current_font->atlas_width),
+		float temp_vertex_width = glyph->advance_width - glyph->left_space;
+		
+		vertices[0] = (vertex_text_t){.position = vec2(x_offset + glyph->left_space, y_offset + glyph->top_space),
+									  .uv = vec2(uv_rect[0], uv_rect[1]),
 									  .color = color};	// top-left
-		vertices[1] = (vertex_text_t){.position = vec2(x_offset + glyph->left_space, y_offset + current_font->font_size),
-									  .uv = vec2((float)glyph->src_x / current_font->atlas_width, (float)(glyph->src_y + glyph->src_height) / current_font->atlas_width),
+		vertices[1] = (vertex_text_t){.position = vec2(x_offset + glyph->left_space, y_offset + glyph->height + glyph->top_space),
+									  .uv = vec2(uv_rect[0], uv_rect[3]),
 									  .color = color};	// bottom-left
-		vertices[2] = (vertex_text_t){.position = vec2(x_offset + glyph->advance_width, y_offset + current_font->font_size),
-									  .uv = vec2((float)(glyph->src_x + glyph->src_width) / current_font->atlas_width, (float)(glyph->src_y + glyph->src_height) / current_font->atlas_width),
+		vertices[2] = (vertex_text_t){.position = vec2(x_offset + temp_vertex_width, y_offset + glyph->height + glyph->top_space),
+									  .uv = vec2(uv_rect[2], uv_rect[3]),
 									  .color = color};	// bottom-right
-
-		vertices[3] = (vertex_text_t){.position = vec2(x_offset + glyph->left_space, y_offset),
-									  .uv = vec2((float)glyph->src_x / current_font->atlas_width, (float)glyph->src_y / current_font->atlas_width),
+		
+		vertices[3] = (vertex_text_t){.position = vec2(x_offset + glyph->left_space, y_offset + glyph->top_space),
+									  .uv = vec2(uv_rect[0], uv_rect[1]),
 									  .color = color};	// top-left
-		vertices[4] = (vertex_text_t){.position = vec2(x_offset + glyph->advance_width, y_offset + current_font->font_size),
-									  .uv = vec2((float)(glyph->src_x + glyph->src_width) / current_font->atlas_width, (float)(glyph->src_y + glyph->src_height) / current_font->atlas_width),
+		vertices[4] = (vertex_text_t){.position = vec2(x_offset + temp_vertex_width, y_offset + glyph->height + glyph->top_space),
+									  .uv = vec2(uv_rect[2], uv_rect[3]),
 									  .color = color};	// bottom-right
-		vertices[5] = (vertex_text_t){.position = vec2(x_offset + glyph->advance_width, y_offset),
-									  .uv = vec2((float)(glyph->src_x + glyph->src_width) / current_font->atlas_width, (float)glyph->src_y / current_font->atlas_width),
+		vertices[5] = (vertex_text_t){.position = vec2(x_offset + temp_vertex_width, y_offset + glyph->top_space),
+									  .uv = vec2(uv_rect[2], uv_rect[1]),
 									  .color = color};	// top-right
 
 		x_offset += glyph->advance_width;

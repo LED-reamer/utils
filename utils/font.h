@@ -10,17 +10,21 @@ typedef struct {
 	uint32_t src_x, src_y, src_width, src_height;
 
 	// metrics (in pixel)
-	int32_t advance_width;	// draw character. move to right by advance pixels. repeat.
-	int32_t left_space;		// offset of where to draw
+	float advance_width;	// draw character. move to right by advance pixels. repeat.
+	
+	float left_space;		// offset of where to draw
+	float top_space;		// offset of where to draw
+	float height;			// character height under top_space
+	float width;			// character height after left_space
 } glyph_t;
 
 typedef struct {
 	allocator_t* allocator;
 	//(in pixels)
 	float font_size;
-	int32_t ascent;		  // offset baseline to top
-	int32_t descent;	  // offset baseline to bottom
-	int32_t line_height;  // offset between baselines
+	float ascent;		  // offset baseline to top
+	float descent;	  // offset baseline to bottom
+	float line_height;  // offset between baselines
 
 	uint32_t num_glyphs;
 	glyph_t* glyphs;
@@ -37,9 +41,11 @@ void font_destroy(font_t* font);
 // returns NULL if codepoint is not in font
 glyph_t* font_get_glyph(font_t* font, uint32_t codepoint);
 
+bool font_get_glyph_uv(font_t* font, glyph_t* glyph, float uv_rect[4]);
+
 // returns false if codepoint is not in font
 bool font_contains_codepoint(font_t* font, uint32_t codepoint);
 bool font_get_codepoint_source_rectangle(font_t* font, uint32_t codepoint, uint32_t src_rect[4]);
-bool font_get_codepoint_uv(font_t* font, uint32_t codepoint, uint32_t uv_rect[4]);
-void font_codepoint_size(font_t* font, uint32_t codepoint, uint32_t* width, uint32_t* height);
-void font_string_size(font_t* font, const char* string, uint32_t* width, uint32_t* height);
+bool font_get_codepoint_uv(font_t* font, uint32_t codepoint, float uv_rect[4]);
+void font_codepoint_size(font_t* font, uint32_t codepoint, float* width, float* height);
+void font_string_size(font_t* font, const char* string, float* width, float* height);

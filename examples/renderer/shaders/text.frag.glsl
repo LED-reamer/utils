@@ -9,6 +9,5 @@ layout(set = 3, binding = 0) uniform UBO_frag {
 void main(){
    float dist = texture(u_font_atlas, v_uv).r;
    float alpha = smoothstep(0.5 - u_smoothing, 0.5 + u_smoothing, dist);
-   alpha += 0.1;
    FragColor = vec4(v_color.rgb, v_color.a * alpha);
 }
