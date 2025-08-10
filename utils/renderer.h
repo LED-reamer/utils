@@ -74,4 +74,4 @@ void renderer_draw_cylinder(vec3_t pos1, vec3_t pos2, float radius, color_t colo
 
 // -=TEXT-RENDERER=-
 void renderer_set_font(font_t* font);
-void renderer_draw_text(const char* string, vec2_t pos/*, TODO add float line_height or size to downsize for better quality*/, color_t color);
+void renderer_draw_text(const char* string, vec2_t pos, float line_height, color_t color);

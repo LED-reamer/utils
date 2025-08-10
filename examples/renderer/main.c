@@ -13,8 +13,8 @@ int main(void) {
 	window_t win = window_create("renderer", 800, 600);
 	renderer_init(allocator_get_default(), &win, RENDERER_2D_SHAPES | RENDERER_TEXT);
 
-	font_t font = font_create_from_file(allocator_get_default(), "simple_font.ttf", 128.0f);
-	//font_t font = font_create_from_file(allocator_get_default(), "second_font.ttf", 64.0f);
+	//font_t font = font_create_from_file(allocator_get_default(), "simple_font.ttf", 128.0f);
+	font_t font = font_create_from_file(allocator_get_default(), "second_font.ttf", 128.0f);
 	renderer_set_font(&font);
 
 	while (window_open(&win)) {
@@ -24,7 +24,11 @@ int main(void) {
 		window_update(&win);
 
 		renderer_draw_line(vec2(0, 0), mouse_get_position(&win), 5, color(0, 0, 0, 1));
-		renderer_draw_text("Hellnpo World", mouse_get_position(&win), color(1, 0, 0, 1));
+		const char* string = "Hello World from renderer";
+		float w, h;
+		font_string_size(&font, string, 64, &w, &h);
+		//renderer_draw_rectangle_size(vec2(mouse_get_position(&win).x, mouse_get_position(&win).y + 128*0.5), vec2(w, h), color(1, 0, 0, .2));
+		renderer_draw_text(string, mouse_get_position(&win), 64, color(0, 0, 0, 1));
 
 		renderer_render(vec2(window_get_size(&win).x, window_get_size(&win).y), color(1, 1, 1, 1), renderer_get_default_camera());
 

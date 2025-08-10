@@ -6,8 +6,7 @@
 #include "3rd-party/stb_truetype.h"
 
 typedef struct {
-	void* data;	 // sdf bitmap
-	int32_t xoff, yoff;
+	void* data;
 } internal_sdf_bitmap_t;
 
 font_t font_create_from_file(allocator_t* allocator, const char* filename, float pixel_size) {
@@ -42,15 +41,20 @@ font_t font_create_from_memory(allocator_t* allocator, void* buffer, size_t buff
 	float font_to_pixel_scale = stbtt_ScaleForPixelHeight(&info, pixel_size);
 	int32_t ascent, descent, line_gap;
 	stbtt_GetFontVMetrics(&info, &ascent, &descent, &line_gap);
-	font.ascent = ascent * font_to_pixel_scale;
-	font.descent = descent * font_to_pixel_scale;
+	font.ascent = abs(ascent) * font_to_pixel_scale;
+	font.descent = abs(descent) * font_to_pixel_scale;
 	font.line_height = (ascent - descent + line_gap) * font_to_pixel_scale;
+
+	int32_t advance, lsb;
+	stbtt_GetCodepointHMetrics(&info, ' ', &advance, &lsb);
+	font.space_width = advance * font_to_pixel_scale;
 
 	uint32_t max_glyph_size = 0;
 	uint32_t glyphs_index = 0;
 	internal_sdf_bitmap_t* sdf_bitmap_array = NULL;
 	LOG("time before load (multithread this) -> first loop to get num_glyphs -> seconds threaded");
 	//TODO multithread this loop
+	//TODO use stbtt_PackSetSkipMissingCodepoints
 	for (uint32_t i = 0; i < (uint32_t)info.numGlyphs; i++) {
 		int32_t id = stbtt_FindGlyphIndex(&info, i);
 		if (id == 0)
@@ -66,21 +70,19 @@ font_t font_create_from_memory(allocator_t* allocator, void* buffer, size_t buff
 		sdf_bitmap_array = font.allocator->arealloc(sdf_bitmap_array, font.num_glyphs * sizeof(internal_sdf_bitmap_t));
 		font.glyphs[glyphs_index].codepoint = i;
 		sdf_bitmap_array[glyphs_index].data = data;
-		sdf_bitmap_array[glyphs_index].xoff = roundf(xoff * font_to_pixel_scale);
-		sdf_bitmap_array[glyphs_index].yoff = roundf(yoff * font_to_pixel_scale);
 
 		int32_t glyph_box[4];//(x0, y0), (x1, y1) corner coordinates
 		stbtt_GetGlyphBox(&info, id, &glyph_box[0], &glyph_box[1], &glyph_box[2], &glyph_box[3]);
-		font.glyphs[glyphs_index].height = (glyph_box[3] - glyph_box[1]) * font_to_pixel_scale;
-		font.glyphs[glyphs_index].top_space = font_to_pixel_scale * ascent - font.glyphs[glyphs_index].height;
 
-		int32_t advance_width, left_size_bearing;
-		stbtt_GetGlyphHMetrics(&info, id, &advance_width, &left_size_bearing);
+		font.glyphs[glyphs_index].x_offset = glyph_box[0] * font_to_pixel_scale;
+		font.glyphs[glyphs_index].y_offset = glyph_box[1] * font_to_pixel_scale;
+		font.glyphs[glyphs_index].width = abs(glyph_box[2] - glyph_box[0]) * font_to_pixel_scale;
+		font.glyphs[glyphs_index].height = abs(glyph_box[3] - glyph_box[1]) * font_to_pixel_scale;
 
-		font.glyphs[glyphs_index].advance_width = advance_width * font_to_pixel_scale;
-		font.glyphs[glyphs_index].width = (glyph_box[2] - glyph_box[0]) * font_to_pixel_scale;
-		font.glyphs[glyphs_index].left_space = left_size_bearing * font_to_pixel_scale;
-
+		int32_t advance, lsb;
+		stbtt_GetGlyphHMetrics(&info, id, &advance, &lsb);
+		font.glyphs[glyphs_index].advance = advance * font_to_pixel_scale;
+		
 		font.glyphs[glyphs_index].src_width = width;
 		font.glyphs[glyphs_index].src_height = height;
 
@@ -91,6 +93,10 @@ font_t font_create_from_memory(allocator_t* allocator, void* buffer, size_t buff
 	}
 	LOG("time after load");
 
+	font.sdf_thickness = 0.5f;
+	font.sdf_smoothing = 0.45f;
+
+	
 	uint32_t characters_per_row = ((uint32_t)sqrt(font.num_glyphs)) + 1;
 	uint32_t texture_size = characters_per_row * max_glyph_size;
 	font.atlas_width = texture_size;
@@ -104,9 +110,9 @@ font_t font_create_from_memory(allocator_t* allocator, void* buffer, size_t buff
 			ERROR("SDF buffer was NULL");
 			continue;
 		}
-		//is this correct?
-		uint32_t bitmap_x = col * max_glyph_size;// - sdf_bitmap_array[i].xoff;
-		uint32_t bitmap_y = row * max_glyph_size;// - sdf_bitmap_array[i].yoff;
+		
+		uint32_t bitmap_x = col * max_glyph_size;
+		uint32_t bitmap_y = row * max_glyph_size;
 
 		uint32_t glyph_width = font.glyphs[i].src_width;
 		uint32_t glyph_height = font.glyphs[i].src_height;
@@ -186,35 +192,38 @@ bool font_get_codepoint_uv(font_t* font, uint32_t codepoint, float uv_rect[4]) {
 	return font_get_glyph_uv(font, glyph, uv_rect);
 }
 
-void font_codepoint_size(font_t* font, uint32_t codepoint, float* width, float* height) {
+void font_codepoint_size(font_t* font, uint32_t codepoint, float pixel_height, float* width, float* height) {
 	glyph_t* glyph = font_get_glyph(font, codepoint);
+	float scale = pixel_height / font->line_height;
 
 	if (glyph) {
-		*width = glyph->width;
-		*height = glyph->height;
+		*width = glyph->width * scale;
+		*height = glyph->height * scale;
 	} else {
 		*width = 0;
 		*height = 0;
 	}
+
 }
 
-void font_string_size(font_t* font, const char* string, float* width, float* height) {
+void font_string_size(font_t* font, const char* string, float pixel_height, float* width, float* height) {
+	float scale = pixel_height / font->line_height;
 	float total_width = 0;
 	float total_height = font->font_size;
 
 	for (size_t i = 0; i < strlen(string); i++) {
-		if(string[i] == '\n'){
-			total_height += font->font_size;
+		if(string[i] == ' '){
+			total_width += font->space_width;
 			continue;
 		}
 		
 		glyph_t* glyph = font_get_glyph(font, (uint32_t)string[i]);
 
 		if (glyph) {
-			total_width += glyph->advance_width;
+			total_width += glyph->advance;
 		}
 	}
 
-	*width = total_width;
-	*height = total_height;
+	*width = total_width * scale;
+	*height = total_height * scale;
 }
