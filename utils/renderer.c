@@ -662,7 +662,31 @@ void renderer_render(vec2_t screen_size, color_t clear_color, camera_t camera) {
 	if (initialised_renderers != 0)
 		gpu_begin(&ctx, NULL, clear_color);
 
-	// render 3d in behind
+	if (initialised_renderers & RENDERER_TEXT) {
+		if (renderer_text.vertex_arena.data != NULL) {
+			mat4x4_t projection = mat4x4_ortho(0.0f, (float)screen_size.x, (float)screen_size.y, 0.0f, -1, 1);
+			if (renderer_text.vertex_arena.current_pos != renderer_text.vertex_arena.data)
+				mesh_upload(&renderer_text.mesh, renderer_text.vertex_arena.data, (renderer_text.vertex_arena.current_pos - renderer_text.vertex_arena.data) / sizeof(vertex_text_t), NULL, 0);
+			gpu_vertex_uniform(&ctx, 0, projection.m16, sizeof(mat4x4_t));
+			float text_uniform[2] = {current_font->sdf_smoothing, current_font->sdf_thickness};
+			gpu_fragment_uniform(&ctx, 0, text_uniform, sizeof(float)*2);
+			gpu_fragment_samplers(&ctx, (texture_t[]){current_font_texture}, 1);
+			if (renderer_text.vertex_arena.current_pos != renderer_text.vertex_arena.data)
+				gpu_draw(&ctx, &renderer_text.pipeline, &renderer_text.mesh, 0, (renderer_text.vertex_arena.current_pos - renderer_text.vertex_arena.data) / sizeof(vertex_text_t));
+			arena_reset(&renderer_text.vertex_arena);
+		}
+	}
+	if (initialised_renderers & RENDERER_2D_SHAPES) {
+		if (renderer_2d_shapes.vertex_arena.data != NULL) {
+			mat4x4_t projection = mat4x4_ortho(0.0f, (float)screen_size.x, (float)screen_size.y, 0.0f, -1, 1);
+			if (renderer_2d_shapes.vertex_arena.current_pos != renderer_2d_shapes.vertex_arena.data)
+				mesh_upload(&renderer_2d_shapes.mesh, renderer_2d_shapes.vertex_arena.data, (renderer_2d_shapes.vertex_arena.current_pos - renderer_2d_shapes.vertex_arena.data) / sizeof(vertex_2d_shapes_t), NULL, 0);
+			gpu_vertex_uniform(&ctx, 0, projection.m16, sizeof(mat4x4_t));
+			if (renderer_2d_shapes.vertex_arena.current_pos != renderer_2d_shapes.vertex_arena.data)
+				gpu_draw(&ctx, &renderer_2d_shapes.pipeline, &renderer_2d_shapes.mesh, 0, (renderer_2d_shapes.vertex_arena.current_pos - renderer_2d_shapes.vertex_arena.data) / sizeof(vertex_2d_shapes_t));
+			arena_reset(&renderer_2d_shapes.vertex_arena);
+		}
+	}
 	if (initialised_renderers & RENDERER_3D_SHAPES) {
 		if (renderer_3d_shapes.vertex_arena.data != NULL && renderer_3d_shapes.vertex_arena.current_pos != renderer_3d_shapes.vertex_arena.data) {
 			mat4x4_t projection = mat4x4_perspective(deg2rad(camera.fov), (float)screen_size.x / (float)screen_size.y, camera.z_near, camera.z_far);
@@ -680,34 +704,9 @@ void renderer_render(vec2_t screen_size, color_t clear_color, camera_t camera) {
 			arena_reset(&renderer_3d_shapes.vertex_arena);
 		}
 	}
-	if (initialised_renderers & RENDERER_2D_SHAPES) {
-		if (renderer_2d_shapes.vertex_arena.data != NULL) {
-			mat4x4_t projection = mat4x4_ortho(0.0f, (float)screen_size.x, (float)screen_size.y, 0.0f, -1, 1);
-			if (renderer_2d_shapes.vertex_arena.current_pos != renderer_2d_shapes.vertex_arena.data)
-				mesh_upload(&renderer_2d_shapes.mesh, renderer_2d_shapes.vertex_arena.data, (renderer_2d_shapes.vertex_arena.current_pos - renderer_2d_shapes.vertex_arena.data) / sizeof(vertex_2d_shapes_t), NULL, 0);
-			gpu_vertex_uniform(&ctx, 0, projection.m16, sizeof(mat4x4_t));
-			if (renderer_2d_shapes.vertex_arena.current_pos != renderer_2d_shapes.vertex_arena.data)
-				gpu_draw(&ctx, &renderer_2d_shapes.pipeline, &renderer_2d_shapes.mesh, 0, (renderer_2d_shapes.vertex_arena.current_pos - renderer_2d_shapes.vertex_arena.data) / sizeof(vertex_2d_shapes_t));
-			arena_reset(&renderer_2d_shapes.vertex_arena);
-		}
-	}
 	if (initialised_renderers & RENDERER_TEXTURES) {
 		if (renderer_textures.vertex_arena.data != NULL && renderer_textures.vertex_arena.current_pos != renderer_textures.vertex_arena.data) {
 			WARNING("texture rendering not implemented yet!");
-		}
-	}
-	if (initialised_renderers & RENDERER_TEXT) {
-		if (renderer_text.vertex_arena.data != NULL) {
-			mat4x4_t projection = mat4x4_ortho(0.0f, (float)screen_size.x, (float)screen_size.y, 0.0f, -1, 1);
-			if (renderer_text.vertex_arena.current_pos != renderer_text.vertex_arena.data)
-				mesh_upload(&renderer_text.mesh, renderer_text.vertex_arena.data, (renderer_text.vertex_arena.current_pos - renderer_text.vertex_arena.data) / sizeof(vertex_text_t), NULL, 0);
-			gpu_vertex_uniform(&ctx, 0, projection.m16, sizeof(mat4x4_t));
-			float text_uniform[2] = {current_font->sdf_smoothing, current_font->sdf_thickness};
-			gpu_fragment_uniform(&ctx, 0, text_uniform, sizeof(float)*2);
-			gpu_fragment_samplers(&ctx, (texture_t[]){current_font_texture}, 1);
-			if (renderer_text.vertex_arena.current_pos != renderer_text.vertex_arena.data)
-				gpu_draw(&ctx, &renderer_text.pipeline, &renderer_text.mesh, 0, (renderer_text.vertex_arena.current_pos - renderer_text.vertex_arena.data) / sizeof(vertex_text_t));
-			arena_reset(&renderer_text.vertex_arena);
 		}
 	}
 	if (initialised_renderers != 0)

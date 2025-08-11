@@ -94,7 +94,7 @@ font_t font_create_from_memory(allocator_t* allocator, void* buffer, size_t buff
 	LOG("time after load");
 
 	font.sdf_thickness = 0.5f;
-	font.sdf_smoothing = 0.45f;
+	font.sdf_smoothing = 0.15f;
 
 	
 	uint32_t characters_per_row = ((uint32_t)sqrt(font.num_glyphs)) + 1;

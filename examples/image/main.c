@@ -12,7 +12,9 @@ int main(void) {
 	LOG("image \"%s\":\n\t- number of color channels = %u\n\t- number of bits per channels = %u\n\t- width = %u\n\t- height = %u", filename, image.channels, image.channel_size * 8, image.width, image.height);
 
 	// use image ...
-
+	//image_reverse_channels(&image);
+	//image_greyscale(&image);
+	//image_resize(&image, 1000, 1000, IMAGE_AUTO);
 	image_save(&image, IMAGE_PNG, "output.png", true);
 
 	image_destroy(&image);

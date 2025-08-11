@@ -398,7 +398,7 @@ pipeline_t pipeline_create(gpu_context_t* ctx, shader_t* shader, size_t vertex_s
 				.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
 				.alpha_blend_op = SDL_GPU_BLENDOP_ADD,
 
-				.color_write_mask = SDL_GPU_COLORCOMPONENT_R | SDL_GPU_COLORCOMPONENT_G | SDL_GPU_COLORCOMPONENT_B | SDL_GPU_COLORCOMPONENT_A,
+				.color_write_mask = SDL_GPU_COLORCOMPONENT_R | SDL_GPU_COLORCOMPONENT_G | SDL_GPU_COLORCOMPONENT_B |SDL_GPU_COLORCOMPONENT_A,
 
 				.enable_blend = true,
 				.enable_color_write_mask = true,

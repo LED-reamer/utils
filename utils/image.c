@@ -6,9 +6,12 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "3rd-party/stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include <string.h>	 //for memcpy
-
 #include "3rd-party/stb_image_write.h"
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "3rd-party/stb_image_resize2.h"
+#include <string.h>	 //for memcpy
+#include <float.h>	 //for memcpy
+
 
 image_t image_create(allocator_t* allocator, uint32_t width, uint32_t height, image_channels_e channels, image_channel_size_e channel_size) {
 	// could throw an error here
@@ -100,6 +103,20 @@ image_t image_create_from_memory(allocator_t* allocator, void* buffer, size_t bu
 	return image;
 }
 
+image_t image_copy(allocator_t* allocator, image_t* source_image){
+	image_t copy = image_create(allocator, source_image->width, source_image->height, source_image->channels, source_image->channel_size);
+
+	copy.buffer_size = source_image->buffer_size;
+	if(copy.width * copy.height * copy.buffer_size != 0){
+		copy.pixels = copy.allocator->amalloc(copy.buffer_size);
+		memcpy(copy.pixels, source_image->pixels, copy.buffer_size);
+	}
+	
+	copy.channels_reversed = source_image->channels_reversed;
+
+	return copy;
+}
+
 void image_destroy(image_t* image) {
 	if (image->pixels != NULL)
 		image->allocator->afree(image->pixels);
@@ -144,4 +161,133 @@ void image_save(image_t* image, image_filetype_e filetype, const char* filename,
 			UNREACHABLE("Could not recognize filetype");
 			break;
 	}
+}
+
+void image_resize(image_t* image, uint32_t new_width, uint32_t new_height, image_filter_e filtering){
+	void* resized_pixels = image->allocator->amalloc(new_width * new_height * image->channels * image->channel_size);
+
+	stbir_pixel_layout pixel_layout;
+	switch(image->channels){
+		case IMAGE_GREY:
+			pixel_layout = STBIR_1CHANNEL;
+			break;
+		case IMAGE_GREY_ALPHA:
+			if(image->channels_reversed)
+				pixel_layout = STBIR_AR;
+			else
+				pixel_layout = STBIR_RA;
+			break;
+		case IMAGE_RGB:
+			if(image->channels_reversed)
+				pixel_layout = STBIR_BGR;
+			else
+				pixel_layout = STBIR_RGB;
+			break;
+		case IMAGE_RGBA:
+			if(image->channels_reversed)
+				pixel_layout = STBIR_ABGR;
+			else
+				pixel_layout = STBIR_RGBA;
+			break;
+		default:
+			UNREACHABLE("Unknown image channels");
+	}
+
+	stbir_datatype datatype;
+	switch(image->channel_size){
+		case IMAGE_8BIT:
+			datatype = STBIR_TYPE_UINT8;
+			break;
+		case IMAGE_16BIT:
+			datatype = STBIR_TYPE_UINT16;
+			break;
+		case IMAGE_FLOAT32:
+			datatype = STBIR_TYPE_FLOAT;
+			break;
+		default:
+			UNREACHABLE("Unknown channel size");
+	}
+
+	stbir_resize(image->pixels, image->width, image->height, 0,
+		resized_pixels, new_width, new_height, 0,
+		pixel_layout,
+		datatype,
+		STBIR_EDGE_CLAMP,
+		(stbir_filter)filtering);
+	
+	image->allocator->afree(image->pixels);
+	image->pixels = resized_pixels;
+
+	image->width = new_width;
+	image->height = new_height;
+	image->buffer_size = new_width * new_height * image->channels * image->channel_size;
+}
+
+void image_reverse_channels(image_t* image){
+	if(image->channels == 1) return;
+	
+	for(size_t i = 0; i < image->width * image->height * image->channels; i += image->channels){
+		uint8_t copy_buffer[4*4];//biggest possible format RGBA + FLOAT32 -> can hold every color
+		memcpy(copy_buffer, image->pixels + i, image->channels);
+
+		for(uint8_t channel = 0; channel < image->channels; channel++){
+			memcpy(image->pixels + i + image->channel_size * (image->channels-1)-channel, copy_buffer + image->channel_size * channel, image->channel_size);
+		}
+	}
+
+	image->channels_reversed = !image->channels_reversed;
+}
+
+void image_greyscale(image_t* image){
+	//can only convert RGB or RGBA to GREY
+	if(image->channels != 3 && image->channels != 4) return;
+
+	image_channels_e grey_channels = (image->channels == IMAGE_RGBA) ? IMAGE_GREY_ALPHA : IMAGE_GREY;
+	size_t grey_pixels_size = image->width * image->height * image->channel_size * grey_channels;
+		
+	void* grey_pixels = image->allocator->amalloc(grey_pixels_size);
+
+	for(size_t i = 0; i < image->width * image->height; i++){
+		static uint8_t copy_buffer[4 * 4];//biggest possible color format (float32 (4 bytes) * RGBA)
+
+		memcpy(copy_buffer, image->pixels + i  * image->channels, image->channels * image->channel_size);
+
+		switch(image->channel_size){
+			case IMAGE_8BIT:
+				((uint8_t*)grey_pixels)[i*grey_channels] = (uint8_t)(UINT8_MAX*((copy_buffer[0]/(float)UINT8_MAX)*0.299 + (copy_buffer[1]/(float)UINT8_MAX)*0.587 + (copy_buffer[2]/(float)UINT8_MAX)*0.114));
+				if(grey_channels == IMAGE_GREY_ALPHA){
+					if(image->channels_reversed)
+						((uint8_t*)grey_pixels)[i*grey_channels+1] = copy_buffer[0];
+					else
+						((uint8_t*)grey_pixels)[i*grey_channels+1] = copy_buffer[3];
+				}
+				break;
+			case IMAGE_16BIT:
+				((uint16_t*)grey_pixels)[i] = (uint16_t)(UINT16_MAX*((((uint16_t*)copy_buffer)[0]/(float)UINT16_MAX)*0.299 + (((uint16_t*)copy_buffer)[1]/(float)UINT16_MAX)*0.587 + (((uint16_t*)copy_buffer)[2]/(float)UINT16_MAX)*0.114));
+				if(grey_channels == IMAGE_GREY_ALPHA){
+					if(image->channels_reversed)
+						((uint16_t*)grey_pixels)[i*grey_channels+1] = ((uint16_t*)copy_buffer)[0];
+					else
+						((uint16_t*)grey_pixels)[i*grey_channels+1] = ((uint16_t*)copy_buffer)[3];
+				}
+				break;
+			case IMAGE_FLOAT32:
+				((float*)grey_pixels)[i] = ((float*)copy_buffer)[0]*0.299 + ((float*)copy_buffer)[1]*0.587 + ((float*)copy_buffer)[2]*0.114;
+				if(grey_channels == IMAGE_GREY_ALPHA){
+					if(image->channels_reversed)
+						((float*)grey_pixels)[i*grey_channels+1] = ((float*)copy_buffer)[0];
+					else
+						((float*)grey_pixels)[i*grey_channels+1] = ((float*)copy_buffer)[3];
+				}
+				break;
+			default:
+			UNREACHABLE("Unknown channel size");
+			break;
+		}
+	}
+	
+	image->allocator->afree(image->pixels);
+	image->pixels = grey_pixels;
+
+	image->channels = grey_channels;
 }
