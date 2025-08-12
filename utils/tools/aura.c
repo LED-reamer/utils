@@ -5,13 +5,6 @@
 
 #include "../logging.h"
 
-void __destroy_textures(aura_context_t *ctx) {
-	for (uint32_t i = 0; i < ctx->num_textures; i++) {
-		SDL_DestroyTexture((SDL_Texture *)ctx->textures[i].sdl3_texture);
-	}
-	ctx->num_textures = 0;
-}
-
 aura_context_t aura_init(void *sdl3_window) {
 	aura_context_t ctx = {0};
 	SDL_HideWindow(sdl3_window);  // minimizes flicker... TODO intended: create window in // hidden state -> add renderer -> show window
@@ -26,7 +19,7 @@ aura_context_t aura_init(void *sdl3_window) {
 }
 
 void aura_deinit(aura_context_t *ctx) {
-	__destroy_textures(ctx);
+	aura_reset_textures(ctx);
 	SDL_DestroyRenderer(ctx->sdl3_renderer);
 	*ctx = (aura_context_t){0};
 }
@@ -35,7 +28,6 @@ void aura_render(aura_context_t *ctx) {
 	aura_set_target(ctx, NULL);
 
 	SDL_RenderPresent(ctx->sdl3_renderer);
-	__destroy_textures(ctx);
 }
 
 void aura_clip(aura_context_t *ctx, rectangle_t rectangle) {
@@ -87,8 +79,8 @@ void aura_rectangle(aura_context_t *ctx, rectangle_t rectangle, color_t color) {
 }
 
 aura_texture_t *aura_add_texture(aura_context_t *ctx, uint32_t width, uint32_t height, void *pixels) {
-	if (ctx->num_textures + 1 > AURA_MAX_TEXTURES_PER_FRAME) {
-		ERROR("increase AURA_MAX_TEXTURES_PER_FRAME (%u)", AURA_MAX_TEXTURES_PER_FRAME);
+	if (ctx->num_textures + 1 > AURA_MAX_TEXTURES) {
+		ERROR("increase AURA_MAX_TEXTURES (%u)", AURA_MAX_TEXTURES);
 		return NULL;
 	}
 
@@ -106,8 +98,8 @@ aura_texture_t *aura_add_texture(aura_context_t *ctx, uint32_t width, uint32_t h
 }
 
 aura_target_t *aura_add_target(aura_context_t *ctx, uint32_t width, uint32_t height) {
-	if (ctx->num_textures + 1 > AURA_MAX_TEXTURES_PER_FRAME) {
-		ERROR("increase AURA_MAX_TEXTURES_PER_FRAME (%u)", AURA_MAX_TEXTURES_PER_FRAME);
+	if (ctx->num_textures + 1 > AURA_MAX_TEXTURES) {
+		ERROR("increase AURA_MAX_TEXTURES (%u)", AURA_MAX_TEXTURES);
 		return NULL;
 	}
 
@@ -119,6 +111,13 @@ aura_target_t *aura_add_target(aura_context_t *ctx, uint32_t width, uint32_t hei
 	tex->sdl3_texture = SDL_CreateTexture(ctx->sdl3_renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, width, height);
 
 	return tex;
+}
+
+void aura_reset_textures(aura_context_t* ctx) {
+	for (uint32_t i = 0; i < ctx->num_textures; i++) {
+		SDL_DestroyTexture((SDL_Texture *)ctx->textures[i].sdl3_texture);
+	}
+	ctx->num_textures = 0;
 }
 
 void aura_set_texture_scale_mode(aura_texture_t *texture, aura_scale_mode_e scale_mode) {

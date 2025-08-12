@@ -2,7 +2,7 @@
 #include "../types.h"
 
 #define AURA_CORNER_VERTICES (16)
-#define AURA_MAX_TEXTURES_PER_FRAME (64)
+#define AURA_MAX_TEXTURES (64)
 
 typedef struct {
 	vec2_t position;
@@ -19,7 +19,7 @@ typedef aura_texture_t aura_target_t;
 typedef struct {
 	void* sdl3_window;
 	void* sdl3_renderer;
-	aura_texture_t textures[AURA_MAX_TEXTURES_PER_FRAME];
+	aura_texture_t textures[AURA_MAX_TEXTURES];
 	uint32_t num_textures;
 } aura_context_t;
 
@@ -51,6 +51,7 @@ void aura_clear(aura_context_t* ctx, color_t clear_color);
 // -- texture loading
 aura_texture_t* aura_add_texture(aura_context_t* ctx, uint32_t width, uint32_t height, void* pixels);  // RGBA8888
 aura_texture_t* aura_add_target(aura_context_t* ctx, uint32_t width, uint32_t height);				   // RGBA8888
+void aura_reset_textures(aura_context_t* ctx);
 
 void aura_set_texture_scale_mode(aura_texture_t* texture, aura_scale_mode_e scale_mode);
 void aura_set_texture_blend_mode(aura_texture_t* texture, aura_blend_mode_e blend_mode);
