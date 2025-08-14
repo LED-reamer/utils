@@ -11,6 +11,7 @@ aura_context_t aura_init(void *sdl3_window) {
 	ctx.sdl3_window = sdl3_window;
 	ctx.sdl3_renderer = SDL_CreateRenderer(sdl3_window, NULL);
 	SDL_ShowWindow(sdl3_window);
+	SDL_SetRenderVSync(ctx.sdl3_renderer, 1);
 	if (!ctx.sdl3_renderer)
 		ERROR("Could not init SDL3 renderer");
 

@@ -107,6 +107,7 @@ void hashmap_set(hashmap_t* hashmap, hashmap_key_t key, void* value_ptr) {
 }
 
 void* hashmap_get(hashmap_t* hashmap, hashmap_key_t key) {
+	if(hashmap->buckets == NULL) return NULL;
 	size_t index = __hash(key, hashmap->capacity);
 
     while (hashmap->buckets[index] != NULL) {
@@ -123,6 +124,8 @@ void hashmap_remove(hashmap_t* hashmap, hashmap_key_t key) {
 }
 
 void* hashmap_pop(hashmap_t* hashmap, hashmap_key_t key){
+	if(hashmap->buckets == NULL) return NULL;
+	
 	size_t index = __hash(key, hashmap->capacity);
 	void* value_ptr = NULL;
     while (hashmap->buckets[index] != NULL) {
