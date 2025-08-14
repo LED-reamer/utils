@@ -119,25 +119,33 @@ void* hashmap_get(hashmap_t* hashmap, hashmap_key_t key) {
 }
 
 void hashmap_remove(hashmap_t* hashmap, hashmap_key_t key) {
-	size_t index = __hash(key, hashmap->capacity);
+	hashmap_pop(hashmap, key);
+}
 
+void* hashmap_pop(hashmap_t* hashmap, hashmap_key_t key){
+	size_t index = __hash(key, hashmap->capacity);
+	void* value_ptr = NULL;
     while (hashmap->buckets[index] != NULL) {
         if (hashmap->buckets[index]->key == key) {
+        	value_ptr = hashmap->buckets[index]->value_ptr;
             hashmap->allocator->afree(hashmap->buckets[index]);
             hashmap->buckets[index] = NULL;
             hashmap->size--;
 
             __hashmap_resize(hashmap);
-            return;
+            break;//finish searching
         }
         index = (index + 1) % hashmap->capacity;
     }
 
-    //clear memory if nothings in the hashmap
+    //clear memory if nothing is in the hashmap
     if(hashmap->size == 0){
     	hashmap->capacity = 0;
     	hashmap->allocator->afree(hashmap->buckets);
+    	hashmap->buckets = NULL;
     }
+
+    return value_ptr;
 }
 
 void hashmap_clear(hashmap_t* hashmap){

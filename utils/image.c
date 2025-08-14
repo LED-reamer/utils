@@ -7,8 +7,12 @@
 #include "3rd-party/stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "3rd-party/stb_image_write.h"
+
+#ifdef IMAGE_RESIZE
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "3rd-party/stb_image_resize2.h"
+#endif
+
 #include <string.h>	 //for memcpy
 #include <float.h>	 //for memcpy
 
@@ -163,6 +167,7 @@ void image_save(image_t* image, image_filetype_e filetype, const char* filename,
 	}
 }
 
+#ifdef IMAGE_RESIZE
 void image_resize(image_t* image, uint32_t new_width, uint32_t new_height, image_filter_e filtering){
 	void* resized_pixels = image->allocator->amalloc(new_width * new_height * image->channels * image->channel_size);
 
@@ -222,6 +227,7 @@ void image_resize(image_t* image, uint32_t new_width, uint32_t new_height, image
 	image->height = new_height;
 	image->buffer_size = new_width * new_height * image->channels * image->channel_size;
 }
+#endif
 
 void image_reverse_channels(image_t* image){
 	if(image->channels == 1) return;

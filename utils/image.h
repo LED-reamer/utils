@@ -60,7 +60,9 @@ image_t image_copy(allocator_t* allocator, image_t* source_image);
 void image_destroy(image_t* image);
 void image_save(image_t* image, image_filetype_e filetype, const char* filename, bool flip_vertically);
 
+#ifdef IMAGE_RESIZE
 void image_resize(image_t* image, uint32_t new_width, uint32_t new_height, image_filter_e filtering);
+#endif
 
 // utility
 

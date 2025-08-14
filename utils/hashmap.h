@@ -27,6 +27,7 @@ void hashmap_destroy(hashmap_t* hashmap);
 void hashmap_set(hashmap_t* hashmap, hashmap_key_t key, void* value_ptr);
 void* hashmap_get(hashmap_t* hashmap, hashmap_key_t key);
 void hashmap_remove(hashmap_t* hashmap, hashmap_key_t key);
+void* hashmap_pop(hashmap_t* hashmap, hashmap_key_t key);//returns value_ptr and remove in one step
 void hashmap_clear(hashmap_t* hashmap);
 bool hashmap_contains_key(hashmap_t* hashmap, hashmap_key_t key);
 
