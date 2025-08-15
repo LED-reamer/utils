@@ -5,11 +5,41 @@
 
 #include "../logging.h"
 
+const char* __get_best_renderer(){
+	bool opengl = false, opengles2 = false, metal = false, direct3d12 = false, gpu = false, vulkan = false, software = false;
+	for (int32_t i = 0; i < SDL_GetNumRenderDrivers(); i++) {
+		if(0 == strcmp("opengl", SDL_GetRenderDriver(i)))
+			opengl = true;
+		if(0 == strcmp("opengles2", SDL_GetRenderDriver(i)))
+			opengles2 = true;
+		if(0 == strcmp("metal", SDL_GetRenderDriver(i)))
+			metal = true;
+		if(0 == strcmp("direct3d12", SDL_GetRenderDriver(i)))
+			direct3d12 = true;
+		if(0 == strcmp("gpu", SDL_GetRenderDriver(i)))
+			gpu = true;
+		if(0 == strcmp("vulkan", SDL_GetRenderDriver(i)))
+			vulkan = true;
+		if(0 == strcmp("software", SDL_GetRenderDriver(i)))
+			software = true;
+	}
+
+	if(gpu == true) return "gpu";
+	if(vulkan) return "vulkan";
+	if(direct3d12) return "direct3d12";
+	if(metal) return "metal";
+	if(opengl) return "opengl";
+	if(opengles2) return "opengles2";
+	if(software) return "software";
+
+	return NULL;
+}
+
 aura_context_t aura_init(void *sdl3_window) {
 	aura_context_t ctx = {0};
 	SDL_HideWindow(sdl3_window);  // minimizes flicker... TODO intended: create window in // hidden state -> add renderer -> show window
 	ctx.sdl3_window = sdl3_window;
-	ctx.sdl3_renderer = SDL_CreateRenderer(sdl3_window, NULL);
+	ctx.sdl3_renderer = SDL_CreateRenderer(sdl3_window, __get_best_renderer());
 	SDL_ShowWindow(sdl3_window);
 	SDL_SetRenderVSync(ctx.sdl3_renderer, 1);
 	if (!ctx.sdl3_renderer)
