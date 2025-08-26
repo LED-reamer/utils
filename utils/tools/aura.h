@@ -39,12 +39,24 @@ typedef enum {
 	AURA_MUL,
 } aura_blend_mode_e;
 
+typedef enum{
+	AURA_NONE,
+	AURA_STRETCH,
+	AURA_LETTERBOX,
+	AURA_OVERSCAN,
+	AURA_INTEGER_SCALE,
+}aura_logical_presentation_e;
+
 // -- initialization
 aura_context_t aura_init(void* sdl3_window);
 void aura_deinit(aura_context_t* ctx);
 
 // -- frame
 void aura_render(aura_context_t* ctx);
+void aura_set_logical_presentation(aura_context_t* ctx, uint32_t width, uint32_t height, aura_logical_presentation_e logical_presentation);
+vec2_t aura_screen_to_world(aura_context_t* ctx, vec2_t screen_position);
+vec2_t aura_world_to_screen(aura_context_t* ctx, vec2_t world_position);
+vec2_t aura_mouse_world_position(aura_context_t* ctx);
 void aura_clip(aura_context_t* ctx, rectangle_t rectangle);
 void aura_clear(aura_context_t* ctx, color_t clear_color);
 

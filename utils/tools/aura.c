@@ -61,6 +61,37 @@ void aura_render(aura_context_t *ctx) {
 	SDL_RenderPresent(ctx->sdl3_renderer);
 }
 
+SDL_RendererLogicalPresentation __logical_presentation_conversion[] = {
+	[AURA_NONE] = SDL_LOGICAL_PRESENTATION_DISABLED,
+	[AURA_STRETCH] = SDL_LOGICAL_PRESENTATION_STRETCH,
+	[AURA_LETTERBOX] = SDL_LOGICAL_PRESENTATION_LETTERBOX,
+	[AURA_OVERSCAN] = SDL_LOGICAL_PRESENTATION_OVERSCAN,
+	[AURA_INTEGER_SCALE] = SDL_LOGICAL_PRESENTATION_INTEGER_SCALE,
+};
+
+void aura_set_logical_presentation(aura_context_t* ctx, uint32_t width, uint32_t height, aura_logical_presentation_e logical_presentation){
+	SDL_SetRenderLogicalPresentation(ctx->sdl3_renderer, width, height, __logical_presentation_conversion[logical_presentation]);
+}
+
+vec2_t aura_screen_to_world(aura_context_t* ctx, vec2_t screen_position){
+	vec2_t world_position;
+	SDL_RenderCoordinatesFromWindow(ctx->sdl3_renderer, screen_position.x, screen_position.y, &world_position.x, &world_position.y);
+	return world_position;
+}
+
+vec2_t aura_world_to_screen(aura_context_t* ctx, vec2_t world_position){
+	vec2_t screen_position;
+	SDL_RenderCoordinatesToWindow(ctx->sdl3_renderer, world_position.x, world_position.y, &screen_position.x, &screen_position.y);
+	return screen_position;
+}
+
+vec2_t aura_mouse_world_position(aura_context_t* ctx){
+	vec2_t pos;
+	SDL_MouseButtonFlags flags = SDL_GetMouseState(&pos.x, &pos.y);
+	(void)flags;
+	return aura_screen_to_world(ctx, pos);
+}
+
 void aura_clip(aura_context_t *ctx, rectangle_t rectangle) {
 	if (rectangle.x == 0 && rectangle.y == 0 && rectangle.w == 0 && rectangle.h == 0)
 		SDL_SetRenderClipRect(ctx->sdl3_renderer, NULL);
