@@ -94,7 +94,7 @@ void ecs_unregister_system(ecs_t* ecs, const char* system_name, system_phase_t c
 
 #define ECS_REGISTER_COMPONENT(ecs, type) ecs_register_component(ecs, #type, sizeof(type))
 
-#define ECS_REGISTER_SYSTEM(ecs, func, call_phase, required_component) (ecs_register_system(ecs, #func, &(func), call_phase, required_component))
+#define ECS_REGISTER_SYSTEM(ecs, func, call_phase, required_component) (ecs_register_system(ecs, #func, &(func), call_phase, #required_component))
 #define ECS_UNREGISTER_SYSTEM(ecs, func, call_phase) (ecs_unregister_system(ecs, #func, call_phase))
 
 #define ECS_ENTITY_ADD(ecs) (ecs_entity_add(ecs))

@@ -75,14 +75,25 @@ void mesh_upload(mesh_t* mesh, void* vertices, size_t num_vertices, void* indice
 
 // -= STRUCT IMPLEMENTATIONS =-
 
-struct gpu_context_t {
+struct texture_t{
+	gpu_context_t* ctx;
+	SDL_GPUTexture* sdl_texture;
+
+	uint32_t w, h;
+
+	SDL_GPUTextureFormat format;
+	SDL_GPUColorTargetBlendState blend_state;
+	texture_filtering_e filtering;
+};
+
+struct gpu_context_t{
 	allocator_t* allocator;
 	window_t* window;
 	SDL_GPUDevice* device;
 	SDL_GPUCommandBuffer* cmd_buf;
 	SDL_GPURenderPass* render_pass;
 	SDL_GPUTexture* current_render_target;
-	SDL_GPUTexture* depth_texture;
+	texture_t depth_texture;
 	uint32_t current_render_target_width, current_render_target_height;
 
 	//both are repeating
@@ -99,17 +110,6 @@ struct shader_t {
 struct pipeline_t {
 	gpu_context_t* ctx;
 	SDL_GPUGraphicsPipeline* sdl_pipeline;
-};
-
-struct texture_t {
-	gpu_context_t* ctx;
-	SDL_GPUTexture* sdl_texture;
-
-	uint32_t w, h;
-
-	SDL_GPUTextureFormat format;
-	SDL_GPUColorTargetBlendState blend_state;
-	texture_filtering_e filtering;
 };
 
 struct mesh_t {

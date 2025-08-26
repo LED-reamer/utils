@@ -71,6 +71,11 @@ SDL_RendererLogicalPresentation __logical_presentation_conversion[] = {
 
 void aura_set_logical_presentation(aura_context_t* ctx, uint32_t width, uint32_t height, aura_logical_presentation_e logical_presentation){
 	SDL_SetRenderLogicalPresentation(ctx->sdl3_renderer, width, height, __logical_presentation_conversion[logical_presentation]);
+	ctx->logical_size = vec2(width, height);
+}
+
+vec2_t aura_get_logical_size(aura_context_t* ctx){
+	return ctx->logical_size;
 }
 
 vec2_t aura_screen_to_world(aura_context_t* ctx, vec2_t screen_position){
@@ -95,8 +100,10 @@ vec2_t aura_mouse_world_position(aura_context_t* ctx){
 void aura_clip(aura_context_t *ctx, rectangle_t rectangle) {
 	if (rectangle.x == 0 && rectangle.y == 0 && rectangle.w == 0 && rectangle.h == 0)
 		SDL_SetRenderClipRect(ctx->sdl3_renderer, NULL);
-	else
-		SDL_SetRenderClipRect(ctx->sdl3_renderer, (SDL_Rect *)&rectangle);
+	else{
+		SDL_Rect rect = { .x = (int)rectangle.x, .y = (int)rectangle.y, .w = (int)rectangle.w, .h = (int)rectangle.h };
+		SDL_SetRenderClipRect(ctx->sdl3_renderer, &rect);
+	}
 }
 
 void __set_color(aura_context_t *ctx, color_t color) {
@@ -248,14 +255,16 @@ void aura_texture_src(aura_context_t *ctx, aura_texture_t *texture, rectangle_t 
 	SDL_RenderTexture(ctx->sdl3_renderer, texture->sdl3_texture, (SDL_FRect *)&src, (SDL_FRect *)&dst);
 }
 
-void aura_texture_sprite(aura_context_t *ctx, aura_texture_t *texture, rectangle_t dst, rectangle_t src, double degrees, vec2_t center, bool flip_vertical, bool flip_horizontal) {
+void aura_texture_sprite(aura_context_t *ctx, aura_texture_t *texture, rectangle_t dst, rectangle_t src, double degrees, vec2_t center, bool flip_vertical, bool flip_horizontal, color_t tint) {
 	SDL_FlipMode flip_mode = 0;
 	if (flip_vertical)
 		flip_mode |= SDL_FLIP_VERTICAL;
 	if (flip_horizontal)
 		flip_mode |= SDL_FLIP_HORIZONTAL;
 
+	SDL_SetTextureColorMod(texture->sdl3_texture, tint.r*255, tint.g*255, tint.b*255);
 	SDL_RenderTextureRotated(ctx->sdl3_renderer, texture->sdl3_texture, (SDL_FRect *)&src, (SDL_FRect *)&dst, degrees, (SDL_FPoint *)&center, flip_mode);
+	SDL_SetTextureColorMod(texture->sdl3_texture, 255, 255, 255);
 }
 
 void aura_texture_grid(aura_context_t *ctx, aura_texture_t *texture, float left_width, float right_width, float top_height, float bottom_height, rectangle_t destination_rectangle) {

@@ -10,7 +10,10 @@
 //	   ▼
 //	   y
 
-// 3D COORDINATE SYSTEM (left handed, units in meters):
+// 3D COORDINATE SYSTEM (right handed, y-up, units in meters):
+
+
+//TODO fix this. its wrong
 //      y
 //      ▲  z
 //      │ ╱

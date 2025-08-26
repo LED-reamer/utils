@@ -29,8 +29,8 @@ gpu_context_t gpu_context_create(allocator_t* allocator, window_t* window) {
 
 	//init default samplers
 	SDL_GPUSamplerCreateInfo sampler_create_info = (SDL_GPUSamplerCreateInfo){
-		.min_filter = SDL_GPU_FILTER_LINEAR, 
-		.mag_filter = SDL_GPU_FILTER_LINEAR, 
+		.min_filter = SDL_GPU_FILTER_LINEAR,
+		.mag_filter = SDL_GPU_FILTER_LINEAR,
 		.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
 		.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
 		.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
@@ -41,12 +41,13 @@ gpu_context_t gpu_context_create(allocator_t* allocator, window_t* window) {
 	sampler_create_info.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
 	ctx.nearest_sampler = SDL_CreateGPUSampler(ctx.device, &sampler_create_info);
 
+	ctx.depth_texture = texture_create(&ctx, 10, 10, TEXTURE_FORMAT_DEPTH_16BIT, TEXTURE_FILTERING_NEAREST);
+
 	return ctx;
 }
 
 void gpu_context_destroy(gpu_context_t* gpu_context) {
-	if (gpu_context->depth_texture != NULL) SDL_ReleaseGPUTexture(gpu_context->device, gpu_context->depth_texture);
-	
+	texture_destroy(&gpu_context->depth_texture);
 	SDL_ReleaseGPUSampler(gpu_context->device, gpu_context->linear_sampler);
 	SDL_ReleaseGPUSampler(gpu_context->device, gpu_context->nearest_sampler);
 	
@@ -70,20 +71,10 @@ void gpu_begin(gpu_context_t* ctx, texture_t* target, color_t clear_color) {
 	}
 
 	// resize depth texture if size changed
-	if (current_w != ctx->current_render_target_width || current_h != ctx->current_render_target_height) {
-		if (ctx->depth_texture != NULL) SDL_ReleaseGPUTexture(ctx->device, ctx->depth_texture);
-		SDL_GPUTextureCreateInfo depth_texture_create_info = {
-			.type = SDL_GPU_TEXTURETYPE_2D,
-			.format = SDL_GPU_TEXTUREFORMAT_D24_UNORM,
-			.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET,
-			.width = current_w,
-			.height = current_h,
-			.layer_count_or_depth = 1,
-			.num_levels = 1,
-			.sample_count = 0,
-			.props = 1,	 // docs say this needs to be 0, but error: "Parameter 'src' is invalid" see source code or texture_create()
-		};
-		ctx->depth_texture = SDL_CreateGPUTexture(ctx->device, &depth_texture_create_info);
+	if (current_w != ctx->current_render_target_width || current_h != ctx->current_render_target_height){
+		WARNING("Window resized to %u, %u + memory leak", current_w, current_h);
+		//texture_destroy(&ctx->depth_texture);
+		ctx->depth_texture = texture_create(ctx, current_w, current_h, TEXTURE_FORMAT_DEPTH_16BIT, TEXTURE_FILTERING_NEAREST);
 	}
 	ctx->current_render_target_width = current_w;
 	ctx->current_render_target_height = current_h;
@@ -96,7 +87,7 @@ void gpu_begin(gpu_context_t* ctx, texture_t* target, color_t clear_color) {
 	};
 
 	SDL_GPUDepthStencilTargetInfo depth_stencil_target_info = {
-		.texture = ctx->depth_texture,
+		.texture = ctx->depth_texture.sdl_texture,
 		.load_op = SDL_GPU_LOADOP_CLEAR,
 		.store_op = SDL_GPU_STOREOP_DONT_CARE,
 		.clear_depth = 1,
@@ -248,16 +239,22 @@ static SDL_GPUTextureFormat texture_format_enum_mapping[] = {
 texture_t texture_create(gpu_context_t* ctx, uint32_t width, uint32_t height, texture_format_e format, texture_filtering_e filtering) {
 	SDL_GPUTextureFormat sdl_format = texture_format_enum_mapping[format];
 
+	SDL_GPUTextureUsageFlags custom_usage = 0;
+	if((format == TEXTURE_FORMAT_DEPTH_16BIT || format == TEXTURE_FORMAT_DEPTH_24BIT) || format == TEXTURE_FORMAT_DEPTH_FLOAT32){
+		custom_usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
+	}
+	else custom_usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+
+	SDL_PropertiesID empty_props = SDL_CreateProperties();
 	SDL_GPUTextureCreateInfo texture_create_info = {
 		.type = SDL_GPU_TEXTURETYPE_2D,
 		.format = sdl_format,
-		.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET,
+		.usage = custom_usage,
 		.width = width,
 		.height = height,
 		.layer_count_or_depth = 1,
 		.num_levels = 1,
-		.sample_count = 0,
-		.props = 1,	 // docs say this needs to be 0, but then theres an error: "Parameter 'src' is invalid" since it tries to copy props parameter and it's 0/NULL. See source code SDL_gpu_vulkan.c and SDL_properties.c. Don't know what '1' does
+		.props = empty_props,	 // docs say this needs to be 0, but then theres an error: "Parameter 'src' is invalid" since it tries to copy props parameter and it's 0/NULL. See source code SDL_gpu_vulkan.c and SDL_properties.c. Don't know what '1' does
 	};
 
 	SDL_GPUColorComponentFlags color_write_mask = 0;
@@ -289,6 +286,7 @@ texture_t texture_create(gpu_context_t* ctx, uint32_t width, uint32_t height, te
 		.blend_state = blend_state,
 		.filtering = filtering,
 	};
+	SDL_DestroyProperties(empty_props);
 
 	return texture;
 }
@@ -406,7 +404,7 @@ pipeline_t pipeline_create(gpu_context_t* ctx, shader_t* shader, size_t vertex_s
 		}},
 		.num_color_targets = 1,
 		.has_depth_stencil_target = true,
-		.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D24_UNORM,
+		.depth_stencil_format = ctx->depth_texture.format,
 	};
 
 	SDL_GPUGraphicsPipelineCreateInfo pipeline_info = {
@@ -415,16 +413,13 @@ pipeline_t pipeline_create(gpu_context_t* ctx, shader_t* shader, size_t vertex_s
 		.vertex_input_state = input_state,
 		.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
 		.target_info = target_info,
-
-		.depth_stencil_state = (SDL_GPUDepthStencilState){
+		.depth_stencil_state = {
 			.enable_depth_test = true,
 			.enable_depth_write = true,
-			.enable_stencil_test = false,
 			.compare_op = SDL_GPU_COMPAREOP_LESS,
-			.write_mask = 0xFF},
-
+		},
 		.rasterizer_state = (SDL_GPURasterizerState){.cull_mode = SDL_GPU_CULLMODE_BACK, .fill_mode = SDL_GPU_FILLMODE_FILL, .front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE},
-		.props = 0};
+	};
 
 	pipeline_t pipeline = {
 		.ctx = ctx,

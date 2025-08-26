@@ -145,7 +145,8 @@ static const uint8_t shapes2d_vert[1304] = {
 	0x0d, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x3e, 0x00, 0x03, 0x00, 0x25, 0x00, 0x00, 0x00,
 	0x23, 0x00, 0x00, 0x00, 0x3d, 0x00, 0x04, 0x00, 0x07, 0x00, 0x00, 0x00, 0x29, 0x00, 0x00, 0x00,
 	0x28, 0x00, 0x00, 0x00, 0x3e, 0x00, 0x03, 0x00, 0x26, 0x00, 0x00, 0x00, 0x29, 0x00, 0x00, 0x00,
-	0xfd, 0x00, 0x01, 0x00, 0x38, 0x00, 0x01, 0x00};
+	0xfd, 0x00, 0x01, 0x00, 0x38, 0x00, 0x01, 0x00
+};
 /*
 #version 460
 layout (location = 0) in vec4 v_color;
@@ -690,8 +691,8 @@ void renderer_render(vec2_t screen_size, color_t clear_color, camera_t camera) {
 	if (initialised_renderers & RENDERER_3D_SHAPES) {
 		if (renderer_3d_shapes.vertex_arena.data != NULL && renderer_3d_shapes.vertex_arena.current_pos != renderer_3d_shapes.vertex_arena.data) {
 			mat4x4_t projection = mat4x4_perspective(deg2rad(camera.fov), (float)screen_size.x / (float)screen_size.y, camera.z_near, camera.z_far);
-			// mat4x4_t view = mat4x4_lookat(camera.position, vec3_add(camera.position, camera.direction), camera.up_vector);
-			mat4x4_t view = mat4x4_lookat(camera.position, vec3(0, 0, 0), camera.up_vector);
+			mat4x4_t view = mat4x4_lookat(camera.position, vec3_add(camera.position, camera.direction), camera.up_vector);
+			//mat4x4_t view = mat4x4_lookat(camera.position, vec3(0, 0, 0), camera.up_vector);
 			float ub[32] = {0};
 			memcpy(ub, projection.m16, sizeof(float) * 16);
 			memcpy(ub + 16, view.m16, sizeof(float) * 16);
@@ -870,12 +871,12 @@ void renderer_draw_cylinder(vec3_t pos1, vec3_t pos2, float radius, color_t colo
 		vec3_t normal2 = vec3_normalize(vec3_cross(edge1, edge2));
 
 		vertices[v++] = (vertex_3d_shapes_t){circle_points_lower[i], normal1, color};
-		vertices[v++] = (vertex_3d_shapes_t){circle_points_upper[i], normal1, color};
 		vertices[v++] = (vertex_3d_shapes_t){circle_points_lower[next], normal1, color};
+		vertices[v++] = (vertex_3d_shapes_t){circle_points_upper[i], normal1, color};
 
 		vertices[v++] = (vertex_3d_shapes_t){circle_points_upper[i], normal2, color};
-		vertices[v++] = (vertex_3d_shapes_t){circle_points_upper[next], normal2, color};
 		vertices[v++] = (vertex_3d_shapes_t){circle_points_lower[next], normal2, color};
+		vertices[v++] = (vertex_3d_shapes_t){circle_points_upper[next], normal2, color};
 	}
 
 	for (uint32_t i = 0; i < CIRCLE_SEGMENTS; i++) {
