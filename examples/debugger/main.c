@@ -10,6 +10,7 @@ int main(void) {
 
 	while (window_open(&window)) {
 		debugger_update();
+		debugger_timestamp_begin("loop");
 		window_update(&window);
 
 		if (key_just_down(&window, KEY_ESCAPE)) window_close(&window);
@@ -21,6 +22,7 @@ int main(void) {
 			current_size = next_size;
 			data = realloc(data, current_size);
 		}
+		debugger_timestamp_end("loop");
 	}
 
 	free(data);

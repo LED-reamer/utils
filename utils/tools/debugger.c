@@ -5,7 +5,7 @@
 #include "../window.h"
 #include "aura.h"
 
-#define DEBUGGER_COLORSCHEME_SOFT
+#define DEBUGGER_MAX_TIMESTAMPS (1024)
 
 #define DEBUGGER_ALLOCATION_GRAPH_ENTRIES (1024)
 #define DEBUGGER_FPS_GRAPH_ENTRIES (1024)
@@ -13,39 +13,23 @@
 #define DEBUGGER_SPACING (20)
 #define DEBUGGER_FPS_TARGET (60)
 
-#ifdef DEBUGGER_COLORSCHEME_ZEN
-color_t background_color = color(0.925, 0.925, 0.875, 1.0);
-color_t background_color2 = color(0.95, 0.95, 0.9, 1.0);
-color_t text_color = color(0.396, 0.396, 0.396, 1.0);
-color_t critical_text_color = color(0.957, 0.678, 0.278, 1.0);
-color_t graph_color = color(0.121, 0.227, 0.396, 1.0);
-color_t graph_color2 = color(0.121, 0.227, 0.396, 0.1);
-#else
-#ifdef DEBUGGER_COLORSCHEME_SOFT
 color_t background_color = color(0.95, 0.95, 0.95, 1.0);
 color_t background_color2 = color(0.92, 0.92, 0.92, 1.0);
 color_t text_color = color(0.35, 0.35, 0.35, 1.0);
 color_t critical_text_color = color(0.976, 0.443, 0.145, 1.0);
 color_t graph_color = color(0.235, 0.478, 0.627, 1.0);
 color_t graph_color2 = color(0.235, 0.478, 0.627, 0.15);
-#else
-#ifdef DEBUGGER_COLORSCHEME_DARK
-color_t background_color = color(0.1, 0.1, 0.1, 1.0);
-color_t background_color2 = color(0.15, 0.15, 0.15, 1.0);
-color_t text_color = color(0.9, 0.9, 0.9, 1.0);
-color_t critical_text_color = color(0.9, 0.1, 0.1, 1.0);
-color_t graph_color = color(0.3, 0.5, 0.9, 1.0);
-color_t graph_color2 = color(0.3, 0.5, 0.9, 0.2);
-#else  // DEFAULT
-color_t background_color = color(0.95, 0.95, 0.95, 1.0);
-color_t background_color2 = color(0.8, 0.8, 0.8, 1.0);
-color_t text_color = color(0.1, 0.1, 0.1, 1.0);
-color_t critical_text_color = color(0.9, 0.1, 0.1, 1.0);
-color_t graph_color = color(0.2, 0.5, 0.8, 1.0);
-color_t graph_color2 = color(0.2, 0.5, 0.8, 0.1);
-#endif
-#endif
-#endif
+
+typedef struct{
+	uint64_t id;//created from name
+	const char* timestamp_name;
+	r128 time_begin_s;
+	r128 time_end_s;
+
+	const char* function_name;
+	const char* file_name;
+	size_t line;
+} _debugger_timestamp_t;
 
 typedef struct {
 	window_t window;
@@ -58,6 +42,9 @@ typedef struct {
 	size_t fps_graph_len;
 
 	r128 time_last_s;
+
+	_debugger_timestamp_t timestamps[DEBUGGER_MAX_TIMESTAMPS];
+	size_t num_timestamps;
 } _debugger_context_t;
 
 static _debugger_context_t ctx;
@@ -212,6 +199,26 @@ void graph_add_float(float* graph, size_t* graph_len, float value, size_t max_en
 	graph[*graph_len - 1] = value;
 }
 
+void draw_timestamps(vec2_t destination, r128 frame_time){
+	if(frame_time == 0) frame_time = -1;
+	aura_debug_text_fmt(&ctx.aura, vec2(destination.x, destination.y), text_color, "frametime %Lf ms", frame_time * 1000);
+	for(size_t i = 0; i < DEBUGGER_MAX_TIMESTAMPS; i++){
+		if(ctx.timestamps[i].timestamp_name != NULL)
+			aura_debug_text_fmt(&ctx.aura, vec2(destination.x, destination.y + DEBUGGER_SPACING * (i+1)), text_color, 
+				"[%s in %s:%zu %s] %Lf ms => (%.2Lf%% of frametime)", 
+				ctx.timestamps[i].timestamp_name, 
+				ctx.timestamps[i].file_name, 
+				ctx.timestamps[i].line, 
+				ctx.timestamps[i].function_name, 
+				1000*(ctx.timestamps[i].time_end_s - ctx.timestamps[i].time_begin_s),
+				((ctx.timestamps[i].time_end_s - ctx.timestamps[i].time_begin_s) / frame_time) * 100
+			);
+	}
+
+	memset(ctx.timestamps, 0, DEBUGGER_MAX_TIMESTAMPS * sizeof(_debugger_timestamp_t));
+	ctx.num_timestamps = 0;
+}
+
 void debugger_update() {
 	r128 now = window_get_time_s();
 	if (!window_open(&ctx.window)) return;
@@ -239,7 +246,10 @@ void debugger_update() {
 	aura_debug_text_fmt(&ctx.aura, vec2(DEBUGGER_SPACING, y_offset), text_color, "fps");
 	y_offset += DEBUGGER_SPACING;
 	_draw_fps_graph(ctx.fps_graph, ctx.fps_graph_len, DEBUGGER_FPS_TARGET, rectangle(DEBUGGER_SPACING, y_offset, window_get_width(&ctx.window) - DEBUGGER_SPACING * 2, window_get_height(&ctx.window) / 5));
-
+	y_offset += DEBUGGER_SPACING + window_get_height(&ctx.window) / 5;
+	draw_timestamps(vec2(DEBUGGER_SPACING, y_offset), (now - ctx.time_last_s));
+	y_offset += DEBUGGER_SPACING + ctx.num_timestamps * DEBUGGER_SPACING;
+	
 	aura_render(&ctx.aura);
 	ctx.time_last_s = window_get_time_s();	// skip this function
 }
@@ -248,4 +258,47 @@ void debugger_deinit() {
 	aura_deinit(&ctx.aura);
 	ctx = (_debugger_context_t){0};
 	memory_tracker_deinit();
+}
+
+uint64_t __hash_id_from_string(const char* string) {
+	uint64_t hash = 14695981039346656037U;	// FNV-1a
+	unsigned char c;
+
+	while ((c = *string++)) {
+		hash ^= c;
+		hash *= 1099511628211U;	 // FNV-1a prime
+	}
+	hash ^= hash >> 33;
+	hash *= 0xff51afd7ed558ccd;
+	hash ^= hash >> 33;
+
+	return hash & 0xFFFFFFFFFFFFFFFF;
+}
+
+void __debugger_timestamp_begin(const char* name, const char* function, const char* file, size_t line){
+	if(ctx.num_timestamps + 1 == DEBUGGER_MAX_TIMESTAMPS){
+		return;
+	}
+	
+	_debugger_timestamp_t new_timestamp = {
+		.timestamp_name = name,
+		.id = __hash_id_from_string(name),
+		.function_name = function,
+		.file_name = file,
+		.line = line,
+		.time_begin_s = window_get_time_s(),
+	};
+	ctx.timestamps[ctx.num_timestamps] = new_timestamp;
+	ctx.num_timestamps++;
+}
+
+void debugger_timestamp_end(const char* name){
+	r128 time_end_s	= window_get_time_s();
+	uint64_t id = __hash_id_from_string(name);
+
+	for(size_t i = 0; i < DEBUGGER_MAX_TIMESTAMPS; i++){
+		if(ctx.timestamps[i].id == id){
+			ctx.timestamps[i].time_end_s = time_end_s;
+		}
+	}
 }
