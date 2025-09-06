@@ -16,6 +16,10 @@ typedef struct{
 	ecs_t ecs;
 	aura_context_t aura;
 
+	r128 last_time;
+	float dt;
+	bool had_first_frame;
+
 	// -- sprite renderer --
 	vec2_t camera_target;
 	hashmap_t atlas_images;//key: name_string_to_hash, value: aura_texture_t*

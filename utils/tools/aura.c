@@ -77,24 +77,24 @@ void aura_set_logical_presentation(aura_context_t* ctx, uint32_t width, uint32_t
 vec2_t aura_get_logical_size(aura_context_t* ctx){
 	return ctx->logical_size;
 }
-
-vec2_t aura_screen_to_world(aura_context_t* ctx, vec2_t screen_position){
-	vec2_t world_position;
-	SDL_RenderCoordinatesFromWindow(ctx->sdl3_renderer, screen_position.x, screen_position.y, &world_position.x, &world_position.y);
-	return world_position;
+vec2_t aura_window_to_render(aura_context_t* ctx, vec2_t window_position){
+	vec2_t render_position;
+	SDL_RenderCoordinatesFromWindow(ctx->sdl3_renderer, window_position.x, window_position.y, &render_position.x, &render_position.y);
+	return render_position;
 }
 
-vec2_t aura_world_to_screen(aura_context_t* ctx, vec2_t world_position){
-	vec2_t screen_position;
-	SDL_RenderCoordinatesToWindow(ctx->sdl3_renderer, world_position.x, world_position.y, &screen_position.x, &screen_position.y);
-	return screen_position;
+vec2_t aura_render_to_window(aura_context_t* ctx, vec2_t render_position){
+	vec2_t window_position;
+	SDL_RenderCoordinatesToWindow(ctx->sdl3_renderer, render_position.x, render_position.y, &window_position.x, &window_position.y);
+
+	return window_position;
 }
 
-vec2_t aura_mouse_world_position(aura_context_t* ctx){
+vec2_t aura_mouse_render_position(aura_context_t* ctx){
 	vec2_t pos;
 	SDL_MouseButtonFlags flags = SDL_GetMouseState(&pos.x, &pos.y);
 	(void)flags;
-	return aura_screen_to_world(ctx, pos);
+	return aura_window_to_render(ctx, pos);
 }
 
 void aura_clip(aura_context_t *ctx, rectangle_t rectangle) {

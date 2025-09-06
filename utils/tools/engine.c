@@ -28,9 +28,8 @@ engine_t* engine_create(engine_args_t args){
 	engine->aura = aura_init(engine->window.SDL3_window);
 	engine->camera_target = vec2(0, 0);
 	engine->atlas_images = hashmap_create(engine->allocator);
-	
+	engine->last_time = window_get_time_s();
 	aura_set_logical_presentation(&engine->aura, args.logical_width, args.logical_height, AURA_LETTERBOX);
-	ecs_start(&engine->ecs);
 	
 	return engine;
 }
@@ -46,6 +45,15 @@ void engine_destroy(engine_t* engine){
 }
 
 bool engine_running(engine_t* engine){
+	if(!engine->had_first_frame){
+		ecs_start(&engine->ecs);
+		engine->had_first_frame = true;
+	}
+
+	r128 now = window_get_time_s();
+	engine->dt = (float)(now - engine->last_time);
+	engine->last_time = now;
+	
 	ecs_update(&engine->ecs);
 	ecs_frame(&engine->ecs);
 	aura_render(&engine->aura);
@@ -98,13 +106,11 @@ void engine_draw_sprite(engine_t* engine, const char* atlas_name, rectangle_t ds
 		return;
 	}
 
-	//move destination to camera + set it's (0, 0) to (0, 0) in world coordinates
-	dst.x += engine->camera_target.x + aura_get_logical_size(&engine->aura).x/2;
-	dst.y += engine->camera_target.y + aura_get_logical_size(&engine->aura).y/2;
+	dst.y *= -1;
 
-	//prevent line fragments
-	dst.x = (int32_t)dst.x;
-	dst.y = (int32_t)dst.y;
+	//TODO this prevent line fragments but is ugly
+	//dst.x = (int32_t)dst.x;
+	//dst.y = (int32_t)dst.y;
 
 	aura_texture_sprite(&engine->aura, texture, dst, src, degrees, center, flip_vertical, flip_horizontal, tint);
 }
