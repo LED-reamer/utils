@@ -43,6 +43,7 @@ bool engine_running(engine_t* engine);
 void engine_set_camera_position(engine_t* engine, vec2_t target);
 vec2_t engine_get_camera_position(engine_t* engine);
 void engine_load_atlas(engine_t* engine, const char* filename, const char* name);// only RGBA8888
+//sprite's coordinate system is y up
 void engine_draw_sprite(engine_t* engine,
 						const char* atlas_name, 
 						rectangle_t dst, 
@@ -52,3 +53,5 @@ void engine_draw_sprite(engine_t* engine,
 						bool flip_vertical, 
 						bool flip_horizontal,
 						color_t tint);
+
+vec2_t engine_get_mouse_sprite(engine_t* engine);

@@ -106,11 +106,26 @@ void engine_draw_sprite(engine_t* engine, const char* atlas_name, rectangle_t ds
 		return;
 	}
 
+	//move by camera
+	dst.x -= engine->camera_target.x - aura_get_logical_size(&engine->aura).x/2;
+	dst.y -= engine->camera_target.y + aura_get_logical_size(&engine->aura).y/2;
+
+	//sprite's coordinate system is y up
 	dst.y *= -1;
 
-	//TODO this prevent line fragments but is ugly
+	//prevents nothing
 	//dst.x = (int32_t)dst.x;
 	//dst.y = (int32_t)dst.y;
 
 	aura_texture_sprite(&engine->aura, texture, dst, src, degrees, center, flip_vertical, flip_horizontal, tint);
+}
+
+vec2_t engine_get_mouse_sprite(engine_t* engine){
+	vec2_t pos = aura_mouse_render_position(&engine->aura);
+
+	pos.x += engine->camera_target.x - aura_get_logical_size(&engine->aura).x/2;
+	pos.y += engine->camera_target.y + aura_get_logical_size(&engine->aura).y/2;
+	pos.y *= -1;
+
+	return pos;
 }
