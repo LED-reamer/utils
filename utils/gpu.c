@@ -72,9 +72,11 @@ void gpu_begin(gpu_context_t* ctx, texture_t* target, color_t clear_color) {
 
 	// resize depth texture if size changed
 	if (current_w != ctx->current_render_target_width || current_h != ctx->current_render_target_height){
+		//SDL_SubmitGPUCommandBuffer(ctx->cmd_buf);
 		WARNING("Window resized to %u, %u + memory leak", current_w, current_h);
-		//texture_destroy(&ctx->depth_texture);
+		//texture_destroy(&ctx->depth_texture);//TODO: this line causes a segfault
 		ctx->depth_texture = texture_create(ctx, current_w, current_h, TEXTURE_FORMAT_DEPTH_16BIT, TEXTURE_FILTERING_NEAREST);
+		//ctx->cmd_buf = SDL_AcquireGPUCommandBuffer(ctx->device);
 	}
 	ctx->current_render_target_width = current_w;
 	ctx->current_render_target_height = current_h;

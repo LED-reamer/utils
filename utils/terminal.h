@@ -23,7 +23,7 @@ int terminal_input();
 
 void terminal_char(int character, uint32_t x, uint32_t y);
 void terminal_string(const char* string, uint32_t x, uint32_t y);
-void terminal_buffer(char buf[], uint32_t buf_width, uint32_t buf_height, uint32_t x, uint32_t y);
+void terminal_buffer(char buf[], uint32_t buf_width, uint32_t buf_height, uint32_t x, uint32_t y, bool two_wide_cells);
 void terminal_pixel(term_rgb_t pixel_color, uint32_t x, uint32_t y, bool two_wide);
 void terminal_image(term_rgb_t img[], uint32_t img_width, uint32_t img_height, uint32_t x, uint32_t y, bool two_wide);
 void terminal_box(uint32_t x, uint32_t y, uint32_t width, uint32_t height);

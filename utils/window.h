@@ -42,6 +42,8 @@ bool window_is_focused(window_t* window);
 void window_always_on_top(window_t* window, bool on_top);
 void window_set_icon(window_t* window, void* pixel_data, uint32_t width, uint32_t height);
 
+void window_set_framebuffer(window_t* window, uint32_t* pixels_rgba, uint32_t w, uint32_t h);
+
 int64_t window_get_time_ns();
 long double window_get_time_s();
 

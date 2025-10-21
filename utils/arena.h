@@ -3,8 +3,7 @@
 
 #include "allocator.h"
 
-typedef struct
-{
+typedef struct {
 	allocator_t* allocator;
 
 	size_t num_start_chunks;  // fixed value

@@ -34,17 +34,22 @@ int main(void) {
 		renderer_draw_cylinder(vec3(0, 0, 0), vec3(0, 1, 0), .1, color(0, 1, 0, 1));
 		renderer_draw_cylinder(vec3(0, 0, 0), vec3(0, 0, 1), .1, color(0, 0, 1, 1));
 
+
+		//TODO: depth testing is still wrong
+		renderer_draw_cylinder(vec3(-1, 0, 2), vec3(1, 0, 2), .1, color(.5, .5, .5, 1));
+		renderer_draw_cylinder(vec3(0, 1, 2), vec3(0, -1, 2), .1, color(.2, .2, .2, 1));
+
 		renderer_render(vec2(window_get_size(&win).x, window_get_size(&win).y), color(1, 1, 1, 1), camera);
 
 		//camera.direction = vec3(0, 0, 1);
 
 		if (key_just_down(&win, KEY_ESCAPE)) window_close(&win);
-		if (key_down(&win, KEY_A)) camera.position.x += .1;
-		if (key_down(&win, KEY_D)) camera.position.x += -.1;
-		if (key_down(&win, KEY_W)) camera.position.z += .1;
-		if (key_down(&win, KEY_S)) camera.position.z += -.1;
-		if (key_down(&win, KEY_SPACE)) camera.position.y += .1;
-		if (key_down(&win, KEY_LSHIFT)) camera.position.y += -.1;
+		if (key_down(&win, KEY_A)) camera.position.x += .01;
+		if (key_down(&win, KEY_D)) camera.position.x += -.01;
+		if (key_down(&win, KEY_W)) camera.position.z += .01;
+		if (key_down(&win, KEY_S)) camera.position.z += -.01;
+		if (key_down(&win, KEY_SPACE)) camera.position.y += .01;
+		if (key_down(&win, KEY_LSHIFT)) camera.position.y += -.01;
 	}
 
 	font_destroy(&font);

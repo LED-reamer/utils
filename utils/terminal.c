@@ -97,7 +97,15 @@ void terminal_string(const char* string, uint32_t x, uint32_t y) {
 	mvaddstr(y, x, string);
 }
 
-void terminal_buffer(char buf[], uint32_t buf_width, uint32_t buf_height, uint32_t x, uint32_t y) {
+void terminal_buffer(char buf[], uint32_t buf_width, uint32_t buf_height, uint32_t x, uint32_t y, bool two_wide_cells) {
+	if(two_wide_cells){
+		for (uint32_t dy = 0; dy < buf_height; dy++) {
+			for (uint32_t dx = 0; dx < buf_width; dx++) {
+				terminal_char((int)buf[dx + dy*buf_width], dx*2 + x, dy + y);
+			}
+		}
+		return;
+	}
 	for (uint32_t row = 0; row < buf_height; row++) {
 		char* line = &buf[row * buf_width];
 		mvaddnstr(y + row, x, line, buf_width);
