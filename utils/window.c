@@ -205,11 +205,9 @@ void window_set_icon(window_t* window, void* pixel_data, uint32_t width, uint32_
 }
 
 void window_set_framebuffer(window_t* window, uint32_t* pixels_rgba, uint32_t w, uint32_t h){
-	SDL_Surface* src_surface = SDL_CreateSurfaceFrom(w, h, SDL_PIXELFORMAT_ARGB8888, pixels_rgba, w * 4);
+	SDL_Surface* src_surface = SDL_CreateSurfaceFrom(w, h, SDL_PIXELFORMAT_RGBA8888, pixels_rgba, w * 4);
 	SDL_Surface* dest_surface = SDL_GetWindowSurface(window->SDL3_window);
-	SDL_Rect src_rect = {0, 0, w, h};
-	SDL_Rect dst_rect = {0, 0, dest_surface->w, dest_surface->h};
-	SDL_BlitSurface(src_surface, &src_rect, dest_surface, &dst_rect);
+	SDL_BlitSurface(src_surface, NULL, dest_surface, NULL);
 	SDL_UpdateWindowSurface(window->SDL3_window);
 	SDL_DestroySurface(src_surface);
 }
