@@ -20,11 +20,13 @@ argument_parser_t argument_parser_create(allocator_t* allocator, const char* pro
 	};
 
 	argument_parser_add(&arg_parser,
-						(argument_t){
-							.type = ARGUMENT_OPTIONAL_FLAG,
-							.name = "-h",
-							.alias = "--help",
-							.desc = "shows this help message"});
+		(argument_t){
+			.type = ARGUMENT_OPTIONAL_FLAG,
+			.name = "-h",
+			.alias = "--help",
+			.desc = "shows this help message"
+		}
+	);
 
 	return arg_parser;
 }

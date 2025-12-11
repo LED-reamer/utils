@@ -32,7 +32,7 @@ typedef struct
 	const char* program_name;
 	const char* program_description;
 
-	argument_t* arguments;	// dynamic array //TODO: it's unclear that this is a util array and has to be freed with array_destroy
+	argument_t* arguments;	// dynamic array
 } argument_parser_t;
 
 argument_parser_t argument_parser_create(allocator_t* allocator, const char* program_description);

@@ -40,10 +40,11 @@
 // mat4x4_copy_array(a)                  				- Constructor copies float a[16]
 // mat4x4_identity()          							- Identity matrix
 // mat4x4_mul(a, b)           							- Matrix multiplication (returns new matrix)
+// mat4x4_mul_vec4(a, b)								- multiplies Matrix with vec4 (returns new vec4)
 // mat4x4_translate(out, x, y, z) 						- Translation (multiplies out)
 // mat4x4_scale(out, x, y, z)     						- Scale (multiplies out)
 // mat4x4_rotate(out, angle_rad, axis) 					- Rotation around axis (multiplies out)
-// mat4x4_lookat(eye, center, up) 						- Camera (view) matrix
+// mat4x4_lookat(eye, center, up) 						- Camera (view) matrix, eye -> camera position, center -> position to look at
 // mat4x4_ortho(left, right, bottom, top, near, far) 	- Orthographic projection
 // mat4x4_perspective(fovy_rad, aspect, near, far) 		- Perspective projection matrix
 // mat4x4_transpose(m) 									- Returns the transpose of matrix m
@@ -393,6 +394,24 @@ static inline mat4x4_t mat4x4_mul(const mat4x4_t* a, const mat4x4_t* b) {
 	return result;
 }
 
+/*static inline vec4_t mat4x4_mul_vec4(const mat4x4_t* m, const vec4_t* v) {
+	return vec4(
+		m->m[0][0] * v->x + m->m[0][1] * v->y + m->m[0][2] * v->z + m->m[0][3] * v->w,
+		m->m[1][0] * v->x + m->m[1][1] * v->y + m->m[1][2] * v->z + m->m[1][3] * v->w,
+		m->m[2][0] * v->x + m->m[2][1] * v->y + m->m[2][2] * v->z + m->m[2][3] * v->w,
+		m->m[3][0] * v->x + m->m[3][1] * v->y + m->m[3][2] * v->z + m->m[3][3] * v->w
+	);
+}*/
+//column major
+static inline vec4_t mat4x4_mul_vec4(const mat4x4_t* m, const vec4_t* v) {
+	return vec4(
+		m->m[0][0]*v->x + m->m[1][0]*v->y + m->m[2][0]*v->z + m->m[3][0]*v->w,
+		m->m[0][1]*v->x + m->m[1][1]*v->y + m->m[2][1]*v->z + m->m[3][1]*v->w,
+		m->m[0][2]*v->x + m->m[1][2]*v->y + m->m[2][2]*v->z + m->m[3][2]*v->w,
+		m->m[0][3]*v->x + m->m[1][3]*v->y + m->m[2][3]*v->z + m->m[3][3]*v->w
+	);
+}
+
 static inline void mat4x4_translate(mat4x4_t* out, float x, float y, float z) {
 	mat4x4_t t = mat4x4(0);
 	t.m[0][0] = 1.0f;
@@ -474,17 +493,10 @@ static inline mat4x4_t mat4x4_lookat(vec3_t eye, vec3_t center, vec3_t up) {
 // left handed
 static inline mat4x4_t mat4x4_lookat_lh(vec3_t eye, vec3_t center, vec3_t up) {
 	mat4x4_t m = {0};
-
-	// Berechnung des Vorwärtsvektors (z-Achse der Kamera)
 	vec3_t f = vec3_normalize(vec3_sub(center, eye));
-
-	// Berechnung des Seitwärtsvektors (x-Achse der Kamera)
 	vec3_t s = vec3_normalize(vec3_cross(f, up));
-
-	// Berechnung des "oberen" Vektors (y-Achse der Kamera)
 	vec3_t u = vec3_cross(s, f);
 
-	// Setze die Matrixwerte
 	m.m[0][0] = s.x;
 	m.m[0][1] = u.x;
 	m.m[0][2] = f.x;
@@ -495,10 +507,9 @@ static inline mat4x4_t mat4x4_lookat_lh(vec3_t eye, vec3_t center, vec3_t up) {
 	m.m[2][1] = u.z;
 	m.m[2][2] = f.z;
 
-	// Setze die Translation der Matrix
 	m.m[3][0] = -vec3_dot(s, eye);
 	m.m[3][1] = -vec3_dot(u, eye);
-	m.m[3][2] = vec3_dot(f, eye);  // f bleibt positiv für das linkshändige Koordinatensystem
+	m.m[3][2] = vec3_dot(f, eye);
 	m.m[0][3] = m.m[1][3] = m.m[2][3] = 0.0f;
 	m.m[3][3] = 1.0f;
 

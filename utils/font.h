@@ -25,7 +25,7 @@ typedef struct {
 	float descent;	  	// distance(positive) from baseline to bottom
 	float line_height;  // offset between baselines
 
-	float space_width;//TODO implement
+	float space_width;
 
 	uint32_t num_glyphs;
 	glyph_t* glyphs;
