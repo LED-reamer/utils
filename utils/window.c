@@ -61,6 +61,48 @@ window_t window_create(const char* title, uint32_t width, uint32_t height) {
 	return window;
 }
 
+window_t window_create_opengl(const char* title, uint32_t width, uint32_t height) {
+	window_t window = (window_t){
+		.is_open = true,
+		.w = 1,
+		.h = 1,
+		.dark_theme = false,
+	};
+
+	if (num_windows == 0) {
+		if (!SDL_Init(SDL_INIT_VIDEO)) {
+			ERROR("Couldn't init SDL3");
+			return (window_t){0};
+		}
+	}
+
+	if (keyboard_state_current == NULL) {
+		keyboard_state_current = SDL_GetKeyboardState(&num_keyboard_states);
+	}
+
+	// set props
+	SDL_PropertiesID props = SDL_CreateProperties();
+	SDL_SetStringProperty(props, SDL_PROP_WINDOW_CREATE_TITLE_STRING, title);
+	SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true);
+	SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_OPENGL_BOOLEAN, true);
+	//SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_TRANSPARENT_BOOLEAN, true);
+	SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, width);
+	SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, height);
+
+	window.SDL3_window = SDL_CreateWindowWithProperties(props);
+	SDL_DestroyProperties(props);
+	if (window.SDL3_window == NULL) {
+		ERROR("Couldn't create SDL3 window: %s", SDL_GetError());
+		return (window_t){0};
+	}
+
+	if (SDL_GetSystemTheme() == SDL_SYSTEM_THEME_DARK) window.dark_theme = true;
+
+	num_windows++;
+
+	return window;
+}
+
 window_t window_create_from_X11_handle(uint64_t x11_window) {
 	window_t window = (window_t){
 		.is_open = true,

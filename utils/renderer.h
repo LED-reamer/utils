@@ -13,12 +13,11 @@
 // 3D COORDINATE SYSTEM (right handed, y-up, units in meters):
 
 
-//TODO fix this. its wrong
 //      y
 //      ▲  z
 //      │ ╱
 //      │╱
-//	(0,0,0) ─────► x
+//	(0,0,0) ─────► -x
 
 // TODO once arena and mesh are stack variables remove induvidual initialising and just do always all (since no heap allocations needed when not used -> arena)
 typedef enum {

@@ -24,6 +24,7 @@ typedef enum {
 } window_mode_e;
 
 window_t window_create(const char* title, uint32_t width, uint32_t height);
+window_t window_create_opengl(const char* title, uint32_t width, uint32_t height);
 window_t window_create_from_X11_handle(uint64_t x11_window);
 void window_destroy(window_t* window);
 bool window_open(window_t* window);
