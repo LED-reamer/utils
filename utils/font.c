@@ -11,7 +11,11 @@ typedef struct {
 
 font_t font_create_from_file(allocator_t* allocator, const char* filename, float pixel_size) {
 	buffer_t file_buffer = buffer_create(allocator);
-	buffer_load_data_from_file(&file_buffer, filename);
+	if(buffer_load_data_from_file(&file_buffer, filename) != BUFFER_OK){
+		ERROR("Could not load font \"%s\"", filename);
+		buffer_destroy(&file_buffer);
+		return (font_t){0};
+	}
 	font_t font = font_create_from_memory(allocator, file_buffer.data, file_buffer.size, pixel_size);
 	buffer_destroy(&file_buffer);
 

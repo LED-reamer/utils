@@ -1,3 +1,4 @@
+#define BACKEND_SDL_GPU
 #include <stdlib.h>
 
 #include "utils/allocator.h"
@@ -53,6 +54,7 @@ int main(void) {
 	}
 
 	font_destroy(&font);
+	//TODO forgot to deinit renderer!
 	window_destroy(&win);
 	if(strlen(SDL_GetError()) != 0) ERROR("sdl: %s", SDL_GetError());
 	memory_tracker_deinit();

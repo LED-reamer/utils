@@ -2,7 +2,6 @@
 #include "logging.h"
 
 #include <GL/glew.h>
-//#include <SDL3/SDL_opengl.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -15,67 +14,54 @@ char const* gl_error_string(GLenum const err){switch (err) {case GL_NO_ERROR:ret
 #define GL_CALL(_CALL) _CALL   // Call without error check
 #endif
 
-//forward declared structs
-
-typedef struct mesh_t {
-	allocator_t* allocator;
-	uint32_t gl_vertex_array;
-	uint32_t gl_vertex_buffer;
-	uint32_t gl_index_buffer;
-		
-	size_t vertex_size;
-	uint32_t num_vertices;
-	uint32_t num_indices;
-}mesh_t;
-
-typedef struct texture_t {
-	allocator_t* allocator;
-	uint32_t gl_texture;
-	uint32_t width, height;
-	texture_channels_e channels;
-	uint8_t bits_per_channel;
-}texture_t;
-
-typedef struct rendertarget_t {
-	allocator_t* allocator;
-	uint32_t gl_framebuffer;
-	texture_t* texture;
-}rendertarget_t;
-
-//static variables
-bool gl_initialized = false;
-
-void gl_init() {
-	if(gl_initialized == true) return;
-	gl_initialized = true;
-
-	//set global gl state
-	GL_CALL(glPushAttrib(GL_ALL_ATTRIB_BITS));
+void gl_init(){
+	if(glewInit() != GLEW_OK) ERROR("Could not init glew");
 }
 
-void gl_deinit() {
-	if(gl_initialized == false) return;
-	gl_initialized = false;
-
-	//reset global gl state
-	GL_CALL(glPopAttrib());
+void gl_viewport(uint32_t x, uint32_t y, uint32_t w, uint32_t h){
+	glViewport(x, y, w, h);
 }
 
-void gl_state_reset() {
-	if(gl_initialized == false) return;
-	GL_CALL(glPopAttrib());
-	GL_CALL(glPushAttrib(GL_ALL_ATTRIB_BITS));
-}
-
-void gl_set_depth_test(bool active) {
-	if(active){
-		GL_CALL(glEnable(GL_DEPTH_TEST));
-		//TODOGL_CALL(glDepthFunc(GL_LESS));
-		//TODOGL_CALL(glDepthMask(GL_TRUE););
-	}
-	else{
-		GL_CALL(glDisable(GL_DEPTH_TEST));
-	}
+void gl_set_state(gl_state_e state, bool active) {
+    switch (state) {
+        case GL_STATE_BLENDING:
+            if (active) {
+                GL_CALL(glEnable(GL_BLEND));
+                GL_CALL(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+            } else {
+                GL_CALL(glDisable(GL_BLEND));
+                GL_CALL(glBlendFunc(GL_ONE, GL_ZERO));
+            }
+            break;
+        case GL_STATE_DEPTH_TEST:
+            if (active) {
+                GL_CALL(glEnable(GL_DEPTH_TEST));
+                GL_CALL(glDepthMask(GL_TRUE));
+                GL_CALL(glDepthFunc(GL_LESS));
+                //GL_CALL(glDepthFunc(GL_ALWAYS));
+                GL_CALL(glClearDepth(1.0));
+                GL_CALL(glClear(GL_DEPTH_BUFFER_BIT));
+            } else {
+                GL_CALL(glDisable(GL_DEPTH_TEST));
+                GL_CALL(glDepthFunc(GL_LESS));
+                GL_CALL(glDepthMask(GL_FALSE));
+            }
+            break;
+        case GL_STATE_CULLING:
+            if (active) {
+                GL_CALL(glEnable(GL_CULL_FACE));
+                GL_CALL(glCullFace(GL_BACK));
+                GL_CALL(glFrontFace(GL_CCW));
+            } else {
+                GL_CALL(glDisable(GL_CULL_FACE));
+                GL_CALL(glCullFace(GL_BACK));
+                GL_CALL(glFrontFace(GL_CCW));
+            }
+            break;
+        default:
+            ERROR("unknown gl_state change!");
+            break;
+    }
 }
 
 void gl_clear(color_t color) {
@@ -288,7 +274,6 @@ shader_t shader_create(allocator_t* allocator, const char* vertex, const char* f
 
         shader_objects[SHADER_COMPUTE] = compute_shader_object;
     }
-
     uint32_t program_object;
     GL_CALL(program_object = glCreateProgram());
 
@@ -393,13 +378,13 @@ void shader_uniform_int32_array(shader_t shader, const char* uniform_name, int32
 	GL_CALL(glUniform1iv(glGetUniformLocation(shader, uniform_name), count, data_ptr));
 }
 
-mesh_t* mesh_create(allocator_t* allocator) {
-	mesh_t* mesh = allocator->acalloc(1, sizeof(mesh_t));
-	mesh->allocator = allocator;
+mesh_t mesh_create(allocator_t* allocator) {
+	mesh_t mesh = {0};
+	mesh.allocator = allocator;
 
-	GL_CALL(glGenVertexArrays(1, &mesh->gl_vertex_array));
-	GL_CALL(glGenBuffers(1, &mesh->gl_vertex_buffer));
-	GL_CALL(glGenBuffers(1, &mesh->gl_index_buffer));
+	GL_CALL(glGenVertexArrays(1, &mesh.gl_vertex_array));
+	GL_CALL(glGenBuffers(1, &mesh.gl_vertex_buffer));
+	GL_CALL(glGenBuffers(1, &mesh.gl_index_buffer));
 	
 	return mesh;
 }
@@ -409,7 +394,7 @@ void mesh_destroy(mesh_t* mesh) {
 	GL_CALL(glDeleteBuffers(1, &mesh->gl_vertex_buffer));
 	GL_CALL(glDeleteBuffers(1, &mesh->gl_index_buffer));
 	
-	mesh->allocator->afree(mesh);
+	*mesh = (mesh_t){0};
 }
 
 void mesh_set_attributes(mesh_t* mesh, vertex_attribute_e* vertex_attributes, size_t num_attributes) {
@@ -614,21 +599,67 @@ texture_channels_e texture_get_channels_from_num(uint8_t num_channels) {
 			break;
 	}
 }
+GLenum __texture_get_internal_format(texture_channels_e channel, texture_bits_e bits, texture_format_type_e type) {
+    static GLenum formats[TEXTURE_CHANNELS_COUNT][TEXTURE_BITS_COUNT][TEXTURE_FORMAT_TYPE_COUNT] = {
+        {   // TEXTURE_CHANNELS_R
+            {GL_R8, GL_R16},           // INT
+            {GL_R16F, GL_R16F}         // FLOAT
+        },
+        {   // TEXTURE_CHANNELS_RG
+            {GL_RG8, GL_RG16},         // INT
+            {GL_RG16F, GL_RG16F}       // FLOAT
+        },
+        {   // TEXTURE_CHANNELS_RGB
+            {GL_RGB8, GL_RGB16},       // INT
+            {GL_RGB16F, GL_RGB16F}     // FLOAT
+        },
+        {   // TEXTURE_CHANNELS_RGBA
+            {GL_RGBA8, GL_RGBA16},     // INT
+            {GL_RGBA16F, GL_RGBA16F}   // FLOAT
+        }
+    };
+    
+    return formats[channel][bits][type];
+}
 
-GLenum __channels_to_gl[] = {
-	GL_R,
+GLenum __texture_get_format(texture_channels_e channels) {
+    static GLenum formats[TEXTURE_CHANNELS_COUNT] = {
+        GL_RED,    // TEXTURE_CHANNELS_R
+        GL_RG,     // TEXTURE_CHANNELS_RG
+        GL_RGB,    // TEXTURE_CHANNELS_RGB
+        GL_RGBA,   // TEXTURE_CHANNELS_RGBA
+    };
+    
+    return formats[channels];
+}
+
+GLenum __texture_get_type(texture_bits_e bits, texture_format_type_e type) {
+    static GLenum types[TEXTURE_BITS_COUNT][TEXTURE_FORMAT_TYPE_COUNT] = {
+        {   // TEXTURE_BITS_8
+            GL_UNSIGNED_BYTE,    // INT
+            GL_FLOAT             // FLOAT
+        },
+        {   // TEXTURE_BITS_16
+            GL_UNSIGNED_SHORT,   // INT
+            GL_FLOAT             // FLOAT
+        }
+    };
+    
+    return types[bits][type];
+}
+/*GLenum __channels_to_gl[] = {
+	GL_RED,
 	GL_RG,
 	GL_RGB,
 	GL_RGBA,
-	GL_R8,
-	GL_RG8,
-	GL_RGB8,
-	GL_RGBA8,
-	GL_R16,
-	GL_RG16,
-	GL_RGB16,
-	GL_RGBA16,
 };
+
+GLenum __channels_bits_to_gl_bits[TEXTURE_CHANNELS_COUNT][TEXTURE_BITS_COUNT] = {
+	{GL_R8, GL_R16},
+	{GL_RG8, GL_RG16},
+	{GL_RGB8, GL_RGB16},
+	{GL_RGBA8, GL_RGBA16},
+};*/
 
 GLenum __filtering_to_gl[] = {
 	GL_NEAREST,
@@ -646,30 +677,27 @@ GLenum __wrapping_to_gl[] = {
 	GL_MIRRORED_REPEAT,
 };
 
-texture_t* texture_create(allocator_t* allocator, uint32_t width, uint32_t height, texture_channels_e channels, uint8_t bits_per_channel) {
-	texture_t* texture = allocator->amalloc(sizeof(texture_t));
-	texture->allocator = allocator;
-	GL_CALL(glGenTextures(1, &texture->gl_texture));
-	texture->width = width;
-	texture->height = height;
-	texture->channels = channels;
+texture_t texture_create(allocator_t* allocator, uint32_t width, uint32_t height, texture_channels_e channels, texture_bits_e bits_per_channel, texture_format_type_e format_type) {
+	texture_t texture = {0};
+	texture.allocator = allocator;
+	GL_CALL(glGenTextures(1, &texture.gl_texture));
+	texture.width = width;
+	texture.height = height;
+	texture.channels = channels;
+	texture.bits_per_channel = bits_per_channel;
+	texture.format_type = format_type;
 
-	//only allow 8 and 16 bit
-	if(bits_per_channel != 8 && bits_per_channel != 16)
-		bits_per_channel = 8;
-	texture->bits_per_channel = bits_per_channel;
+	texture_resize(&texture, width, height);
 
-	texture_resize(texture, width, height);
-
-	texture_filtering(texture, TEXTURE_FILTERING_NEAREST, TEXTURE_FILTERING_NEAREST);
-	texture_wrapping(texture, TEXTURE_WRAPPING_REPEAT, TEXTURE_WRAPPING_REPEAT);
+	texture_filtering(&texture, TEXTURE_FILTERING_NEAREST, TEXTURE_FILTERING_NEAREST);
+	texture_wrapping(&texture, TEXTURE_WRAPPING_REPEAT, TEXTURE_WRAPPING_REPEAT);
 
 	return texture;
 }
 
 void texture_destroy(texture_t* texture) {
 	GL_CALL(glDeleteTextures(1, &texture->gl_texture));
-	texture->allocator->afree(texture);
+	*texture = (texture_t){0};
 }
 
 void texture_bind(texture_t* texture, uint32_t slot) {
@@ -686,7 +714,14 @@ void texture_set_pixels(texture_t* texture, uint32_t width, uint32_t height, voi
 	GL_CALL(glGetIntegerv(GL_TEXTURE_BINDING_2D, &previous_id));
 	texture_bind(texture, 0);
 	//need to be unsigned byte / short!
-	GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, __channels_to_gl[texture->channels], width, height, 0, __channels_to_gl[texture->channels], (texture->bits_per_channel == 8) ? GL_UNSIGNED_BYTE : /*else 16bit*/ GL_UNSIGNED_SHORT, pixels));
+	GL_CALL(glTexImage2D(
+		GL_TEXTURE_2D, 0, 
+		__texture_get_internal_format(texture->channels, texture->bits_per_channel, texture->format_type), 
+		width, height, 0, 
+		__texture_get_format(texture->channels), 
+		__texture_get_type(texture->bits_per_channel, texture->format_type), 
+		pixels)
+	);
 	texture->width = width;
 	texture->height = height;
 
@@ -698,7 +733,11 @@ void texture_get_pixels(texture_t* texture, void* pixels) {
 	GL_CALL(glGetIntegerv(GL_TEXTURE_BINDING_2D, &previous_id));
 	texture_bind(texture, 0);
 	
-	GL_CALL(glGetTexImage(GL_TEXTURE_2D, 0, __channels_to_gl[texture->channels], (texture->bits_per_channel == 8) ? GL_UNSIGNED_BYTE : /*else 16bit*/ GL_UNSIGNED_SHORT, pixels));
+	GL_CALL(glGetTexImage(GL_TEXTURE_2D, 0, 
+		__texture_get_format(texture->channels), 
+		__texture_get_type(texture->bits_per_channel, texture->format_type), 
+		pixels)
+	);
 
 	GL_CALL(glBindTexture(GL_TEXTURE_2D, previous_id));
 }
@@ -752,14 +791,14 @@ uint8_t texture_get_bits_per_channel(texture_t* texture) {
 	return texture->bits_per_channel;
 }
 
-rendertarget_t* rendertarget_create(allocator_t* allocator, uint32_t width, uint32_t height, texture_channels_e channels, uint8_t bits_per_channel) {
-	rendertarget_t* rendertarget = allocator->amalloc(sizeof(rendertarget_t));
-	rendertarget->allocator = allocator;
-	GL_CALL(glGenFramebuffers(1, &rendertarget->gl_framebuffer));
-	rendertarget->texture = texture_create(allocator, width, height, channels, bits_per_channel);
+rendertarget_t rendertarget_create(allocator_t* allocator, uint32_t width, uint32_t height, texture_channels_e channels, texture_bits_e bits_per_channel, texture_format_type_e format_type) {
+	rendertarget_t rendertarget = {0};
+	rendertarget.allocator = allocator;
+	GL_CALL(glGenFramebuffers(1, &rendertarget.gl_framebuffer));
+	rendertarget.texture = texture_create(allocator, width, height, channels, bits_per_channel, format_type);
 
-	GL_CALL(glBindFramebuffer(GL_FRAMEBUFFER, rendertarget->gl_framebuffer));
-	GL_CALL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, rendertarget->texture->gl_texture, 0));
+	GL_CALL(glBindFramebuffer(GL_FRAMEBUFFER, rendertarget.gl_framebuffer));
+	GL_CALL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, rendertarget.texture.gl_texture, 0));
 	GL_CALL(glDrawBuffer(GL_COLOR_ATTACHMENT0));
 
 	uint32_t result;
@@ -774,14 +813,14 @@ rendertarget_t* rendertarget_create(allocator_t* allocator, uint32_t width, uint
 }
 
 void rendertarget_destroy(rendertarget_t* rendertarget) {
-	texture_destroy(rendertarget->texture);
+	texture_destroy(&rendertarget->texture);
 	GL_CALL(glDeleteFramebuffers(1, &rendertarget->gl_framebuffer));
-	rendertarget->allocator->afree(rendertarget);
+	*rendertarget = (rendertarget_t){0};
 }
 
 void rendertarget_bind(rendertarget_t* rendertarget) {
 	GL_CALL(glBindFramebuffer(GL_FRAMEBUFFER, rendertarget->gl_framebuffer));
-	GL_CALL(glViewport(0, 0, rendertarget->texture->width, rendertarget->texture->height));
+	GL_CALL(glViewport(0, 0, rendertarget->texture.width, rendertarget->texture.height));
 }
 
 void rendertarget_unbind(vec2_t new_viewport) {
@@ -790,5 +829,5 @@ void rendertarget_unbind(vec2_t new_viewport) {
 }
 
 texture_t* rendertarget_get_texture(rendertarget_t* rendertarget) {
-	return rendertarget->texture;
+	return &rendertarget->texture;
 }

@@ -7,16 +7,14 @@ typedef struct mesh_t mesh_t;
 typedef struct texture_t texture_t;
 typedef struct rendertarget_t rendertarget_t;
 
-
-// -=INITIALISATION=-
-
+// -=INIT=-
 void gl_init();
-void gl_deinit();
+void gl_viewport(uint32_t x, uint32_t y, uint32_t w, uint32_t h);
 
-// -=RENDER STATE=-
+// -=STATE=-
 
-void gl_state_reset();
-void gl_set_depth_test(bool active);
+typedef enum gl_state_e gl_state_e;
+void gl_set_state(gl_state_e state, bool active);
 
 // -=CLEARING=-
 
@@ -44,7 +42,7 @@ void shader_uniform_int32_array(shader_t shader, const char* uniform_name, int32
 
 typedef enum vertex_attribute_e vertex_attribute_e;
 typedef enum draw_mode_e draw_mode_e;
-mesh_t* mesh_create(allocator_t* allocator);
+mesh_t mesh_create(allocator_t* allocator);
 void mesh_destroy(mesh_t* mesh);
 void mesh_set_attributes(mesh_t* mesh, vertex_attribute_e* vertex_attributes, size_t num_attributes);
 void mesh_set_data_vertices(mesh_t* mesh, void* vertices, size_t num_vertices);
@@ -54,10 +52,12 @@ void mesh_draw(mesh_t* mesh, bool indexed, draw_mode_e draw_mode, bool instanced
 // -=TEXTURE=-
 
 typedef enum texture_channels_e texture_channels_e;
+typedef enum texture_bits_e texture_bits_e;
+typedef enum texture_format_type_e texture_format_type_e;
 texture_channels_e texture_get_channels_from_num(uint8_t num_channels);
 typedef enum texture_filtering_e texture_filtering_e;
 typedef enum texture_wrapping_e texture_wrapping_e;
-texture_t* texture_create(allocator_t* allocator, uint32_t width, uint32_t height, texture_channels_e channels, uint8_t bits_per_channel);
+texture_t texture_create(allocator_t* allocator, uint32_t width, uint32_t height, texture_channels_e channels, texture_bits_e bits_per_channel, texture_format_type_e format_type);
 void texture_destroy(texture_t* texture);
 void texture_bind(texture_t* texture, uint32_t slot);
 void texture_resize(texture_t* texture, uint32_t width, uint32_t height);
@@ -73,13 +73,19 @@ uint8_t texture_get_bits_per_channel(texture_t* texture);
 
 // -=RENDERTARGET=-
 
-rendertarget_t* rendertarget_create(allocator_t* allocator, uint32_t width, uint32_t height, texture_channels_e channels, uint8_t bits_per_channel);
+rendertarget_t rendertarget_create(allocator_t* allocator, uint32_t width, uint32_t height, texture_channels_e channels, texture_bits_e bits_per_channel, texture_format_type_e format_type);
 void rendertarget_destroy(rendertarget_t* rendertarget);
 void rendertarget_bind(rendertarget_t* rendertarget);
 void rendertarget_unbind(vec2_t new_viewport);
 texture_t* rendertarget_get_texture(rendertarget_t* rendertarget);
 
 // -=ENUMS=-
+
+typedef enum gl_state_e{
+	GL_STATE_BLENDING,
+	GL_STATE_DEPTH_TEST,
+	GL_STATE_CULLING,
+}gl_state_e;
 
 typedef enum vertex_attribute_e {
 	VERTEX_ATTRIB_FLOAT1,
@@ -111,17 +117,20 @@ typedef enum texture_channels_e {
 	TEXTURE_CHANNELS_RG,
 	TEXTURE_CHANNELS_RGB,
 	TEXTURE_CHANNELS_RGBA,
-
-	TEXTURE_CHANNELS_R8,
-	TEXTURE_CHANNELS_RG8,
-	TEXTURE_CHANNELS_RGB8,
-	TEXTURE_CHANNELS_RGBA8,
-
-	TEXTURE_CHANNELS_R16,
-	TEXTURE_CHANNELS_RG16,
-	TEXTURE_CHANNELS_RGB16,
-	TEXTURE_CHANNELS_RGBA16,
+	TEXTURE_CHANNELS_COUNT,
 }texture_channels_e;
+
+typedef enum texture_bits_e {
+	TEXTURE_BITS_8,
+	TEXTURE_BITS_16,
+	TEXTURE_BITS_COUNT,
+}texture_channel_bits_e;
+
+typedef enum texture_format_type_e {
+	TEXTURE_FORMAT_TYPE_INT,
+	TEXTURE_FORMAT_TYPE_FLOAT,
+	TEXTURE_FORMAT_TYPE_COUNT,
+}texture_format_type_e;
 
 typedef enum texture_filtering_e {
 	TEXTURE_FILTERING_NEAREST,
@@ -138,3 +147,31 @@ typedef enum texture_wrapping_e {
 	TEXTURE_WRAPPING_REPEAT,
 	TEXTURE_WRAPPING_MIRRORED_REPEAT,
 }texture_wrapping_e;
+
+// -=STRUCTS=-
+
+typedef struct mesh_t {
+	allocator_t* allocator;
+	uint32_t gl_vertex_array;
+	uint32_t gl_vertex_buffer;
+	uint32_t gl_index_buffer;
+		
+	size_t vertex_size;
+	uint32_t num_vertices;
+	uint32_t num_indices;
+}mesh_t;
+
+typedef struct texture_t {
+	allocator_t* allocator;
+	uint32_t gl_texture;
+	uint32_t width, height;
+	texture_channels_e channels;
+	texture_bits_e bits_per_channel;
+	texture_format_type_e format_type;
+}texture_t;
+
+typedef struct rendertarget_t {
+	allocator_t* allocator;
+	uint32_t gl_framebuffer;
+	texture_t texture;
+}rendertarget_t;

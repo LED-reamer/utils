@@ -1,17 +1,22 @@
 #include "renderer.h"
-
 #include <string.h>	 //memcpy
-
 #include "arena.h"
-#include "gpu.h"
 #include "logging.h"
-#include "buffer.h"//TODO TEMP remove when direct shader loading is not needed anymore
+
+//#define BACKEND_SDL_GPU
+
+#define MAX_BUFFER_VERTICES 1024 * 10  // for each renderer
+#define VERTEX_ARENA_BLOCK_SIZE 1024   // for each renderer
+#define CIRCLE_SEGMENTS (25)
 
 typedef struct {
 	vec2_t position;
 	vec2_t uv;
 	color_t color;
 } vertex_text_t;
+
+#ifdef BACKEND_SDL_GPU
+#include "gpu.h"
 
 typedef struct {
 	allocator_t* allocator;
@@ -21,32 +26,8 @@ typedef struct {
 	arena_t vertex_arena;
 } renderer_data_t;
 
-#define MAX_BUFFER_VERTICES 1024 * 10  // for each renderer
-#define VERTEX_ARENA_BLOCK_SIZE 1024   // for each renderer
-#define CIRCLE_SEGMENTS (25)
+static gpu_context_t ctx;
 
-gpu_context_t ctx;
-renderer_e initialised_renderers;
-renderer_data_t renderer_2d_shapes;
-renderer_data_t renderer_3d_shapes;
-renderer_data_t renderer_textures;
-renderer_data_t renderer_text;
-
-static camera_t default_camera = {
-	.position = vec3(0, 0, -5),
-	.direction = vec3(0, 0, 1),
-	.up_vector = vec3(0, 1, 0),
-	.fov = 60,
-	.z_near = 0.01f,
-	.z_far = 1000.0f,
-};
-
-camera_t renderer_get_default_camera() {
-	return default_camera;
-}
-
-font_t* current_font = NULL;
-texture_t current_font_texture = (texture_t){0};
 
 // shader code
 /*
@@ -595,6 +576,119 @@ static const uint8_t text_frag[1552]  = {
   0x2c, 0x00, 0x00, 0x00, 0x3b, 0x00, 0x00, 0x00, 0xfd, 0x00, 0x01, 0x00, 0x38, 0x00, 0x01, 0x00
 };
 
+// BACKEND_SDL_GPU
+#else //GL
+
+#include "SDL3/SDL_video.h"
+#include "opengl.h"
+
+//gl shaders
+const char* gl_shapes2d_vert = "#version 330\n"
+	"layout (location = 0) in vec2 a_pos;\n"
+	"layout (location = 1) in vec4 a_color;\n"
+	"out vec4 v_color;\n"
+	"uniform mat4 u_proj;\n"
+	"void main()\n"
+	"{\n"
+	"   gl_Position = u_proj * vec4(a_pos.x, a_pos.y, 0.0, 1.0);\n"
+	"   v_color = a_color;\n"
+	"}\n";
+const char* gl_shapes2d_frag = "#version 330\n"
+	"in vec4 v_color;\n"
+	"out vec4 FragColor;\n"
+	"void main()\n"
+	"{\n"
+	"   FragColor = v_color;\n"
+	"}\n";
+const char* gl_shapes3d_vert = "#version 330\n"
+"layout (location = 0)in vec3 a_pos;\n"
+"layout (location = 1)in vec3 a_normal;\n"
+"layout (location = 2)in vec4 a_color;\n"
+"out vec3 v_normal;\n"
+"out vec4 v_color;\n"
+"uniform mat4 u_proj;\n"
+"uniform mat4 u_view;\n"
+"void main()\n"
+"{\n"
+"   gl_Position = u_proj * u_view * vec4(a_pos.x, a_pos.y, a_pos.z, 1.0);\n"
+"   v_normal = a_normal;\n"
+"   v_color = a_color;\n"
+"}\n";
+const char* gl_shapes3d_frag = "#version 330\n"
+"in vec3 v_normal;\n"
+"in vec4 v_color;\n"
+"out vec4 FragColor;\n"
+"void main()\n"
+"{\n"
+"   FragColor = v_color + vec4(vec3(v_color) + dot(v_normal, vec3(0, -1, -0.05))/1.5, 1);\n"
+"}\n";
+const char* gl_text_vert = "#version 330\n"
+"layout (location = 0) in vec2 a_pos;\n"
+"layout (location = 1) in vec2 a_uv;\n"
+"layout (location = 2) in vec4 a_color;\n"
+"out vec2 v_uv;\n"
+"out vec4 v_color;\n"
+"uniform mat4 u_proj;\n"
+"void main()\n"
+"{\n"
+"   gl_Position = u_proj * vec4(a_pos.x, a_pos.y, 0.0, 1.0);\n"
+"   v_uv = a_uv;\n"
+"   v_color = a_color;\n"
+"}\n";
+const char* gl_text_frag = "#version 330\n"
+"in vec2 v_uv;\n"
+"in vec4 v_color;\n"
+"out vec4 FragColor;\n"
+"uniform sampler2D u_font_atlas;\n"
+"uniform float u_smoothing;\n"
+"uniform float u_thickness;\n"
+"void main(){\n"
+"   float dist = texture(u_font_atlas, v_uv).r;\n"
+"   float alpha = smoothstep(u_thickness - u_smoothing, u_thickness + u_smoothing, dist);\n"
+"   FragColor = vec4(v_color.rgb, v_color.a * alpha);\n"
+"}\n";
+const char* gl_textures_vert = "";
+const char* gl_textures_frag = "";
+
+typedef struct {
+	allocator_t* allocator;
+	shader_t shader;
+	mesh_t mesh;
+	arena_t vertex_arena;
+} renderer_data_t;
+
+typedef struct{
+	allocator_t* allocator;
+	SDL_GLContext gl;
+	window_t* window;
+}gl_context_t;
+
+static gl_context_t ctx;
+#endif
+
+renderer_e initialised_renderers = 0;
+renderer_data_t renderer_2d_shapes;
+renderer_data_t renderer_3d_shapes;
+renderer_data_t renderer_textures;
+renderer_data_t renderer_text;
+
+static camera_t default_camera = {
+	.position = vec3(0, 0, -5),
+	.direction = vec3(0, 0, 1),
+	.up_vector = vec3(0, 1, 0),
+	.fov = 60,
+	.z_near = 0.1f,
+	.z_far = 1000.0f,
+};
+
+camera_t renderer_get_default_camera() {
+	return default_camera;
+}
+
+font_t* current_font = NULL;
+texture_t current_font_texture = (texture_t){0};
+
+#ifdef BACKEND_SDL_GPU
 void renderer_init(allocator_t* allocator, window_t* window, renderer_e renderer_flags) {
 	if (renderer_flags != 0)
 		ctx = gpu_context_create(allocator, window);
@@ -662,32 +756,7 @@ void renderer_deinit() {
 void renderer_render(vec2_t screen_size, color_t clear_color, camera_t camera) {
 	if (initialised_renderers != 0)
 		gpu_begin(&ctx, NULL, clear_color);
-
-	if (initialised_renderers & RENDERER_TEXT) {
-		if (renderer_text.vertex_arena.data != NULL) {
-			mat4x4_t projection = mat4x4_ortho(0.0f, (float)screen_size.x, (float)screen_size.y, 0.0f, -1, 1);
-			if (renderer_text.vertex_arena.current_pos != renderer_text.vertex_arena.data)
-				mesh_upload(&renderer_text.mesh, renderer_text.vertex_arena.data, (renderer_text.vertex_arena.current_pos - renderer_text.vertex_arena.data) / sizeof(vertex_text_t), NULL, 0);
-			gpu_vertex_uniform(&ctx, 0, projection.m16, sizeof(mat4x4_t));
-			float text_uniform[2] = {current_font->sdf_smoothing, current_font->sdf_thickness};
-			gpu_fragment_uniform(&ctx, 0, text_uniform, sizeof(float)*2);
-			gpu_fragment_samplers(&ctx, (texture_t[]){current_font_texture}, 1);
-			if (renderer_text.vertex_arena.current_pos != renderer_text.vertex_arena.data)
-				gpu_draw(&ctx, &renderer_text.pipeline, &renderer_text.mesh, 0, (renderer_text.vertex_arena.current_pos - renderer_text.vertex_arena.data) / sizeof(vertex_text_t));
-			arena_reset(&renderer_text.vertex_arena);
-		}
-	}
-	if (initialised_renderers & RENDERER_2D_SHAPES) {
-		if (renderer_2d_shapes.vertex_arena.data != NULL) {
-			mat4x4_t projection = mat4x4_ortho(0.0f, (float)screen_size.x, (float)screen_size.y, 0.0f, -1, 1);
-			if (renderer_2d_shapes.vertex_arena.current_pos != renderer_2d_shapes.vertex_arena.data)
-				mesh_upload(&renderer_2d_shapes.mesh, renderer_2d_shapes.vertex_arena.data, (renderer_2d_shapes.vertex_arena.current_pos - renderer_2d_shapes.vertex_arena.data) / sizeof(vertex_2d_shapes_t), NULL, 0);
-			gpu_vertex_uniform(&ctx, 0, projection.m16, sizeof(mat4x4_t));
-			if (renderer_2d_shapes.vertex_arena.current_pos != renderer_2d_shapes.vertex_arena.data)
-				gpu_draw(&ctx, &renderer_2d_shapes.pipeline, &renderer_2d_shapes.mesh, 0, (renderer_2d_shapes.vertex_arena.current_pos - renderer_2d_shapes.vertex_arena.data) / sizeof(vertex_2d_shapes_t));
-			arena_reset(&renderer_2d_shapes.vertex_arena);
-		}
-	}
+	
 	if (initialised_renderers & RENDERER_3D_SHAPES) {
 		if (renderer_3d_shapes.vertex_arena.data != NULL && renderer_3d_shapes.vertex_arena.current_pos != renderer_3d_shapes.vertex_arena.data) {
 			mat4x4_t projection = mat4x4_perspective(deg2rad(camera.fov), (float)screen_size.x / (float)screen_size.y, camera.z_near, camera.z_far);
@@ -705,21 +774,188 @@ void renderer_render(vec2_t screen_size, color_t clear_color, camera_t camera) {
 			arena_reset(&renderer_3d_shapes.vertex_arena);
 		}
 	}
+
+	if (initialised_renderers & RENDERER_2D_SHAPES) {
+		if (renderer_2d_shapes.vertex_arena.data != NULL) {
+			mat4x4_t projection = mat4x4_ortho(0.0f, (float)screen_size.x, (float)screen_size.y, 0.0f, -1, 1);
+			if (renderer_2d_shapes.vertex_arena.current_pos != renderer_2d_shapes.vertex_arena.data)
+				mesh_upload(&renderer_2d_shapes.mesh, renderer_2d_shapes.vertex_arena.data, (renderer_2d_shapes.vertex_arena.current_pos - renderer_2d_shapes.vertex_arena.data) / sizeof(vertex_2d_shapes_t), NULL, 0);
+			gpu_vertex_uniform(&ctx, 0, projection.m16, sizeof(mat4x4_t));
+			if (renderer_2d_shapes.vertex_arena.current_pos != renderer_2d_shapes.vertex_arena.data)
+				gpu_draw(&ctx, &renderer_2d_shapes.pipeline, &renderer_2d_shapes.mesh, 0, (renderer_2d_shapes.vertex_arena.current_pos - renderer_2d_shapes.vertex_arena.data) / sizeof(vertex_2d_shapes_t));
+			arena_reset(&renderer_2d_shapes.vertex_arena);
+		}
+	}
+	
 	if (initialised_renderers & RENDERER_TEXTURES) {
 		if (renderer_textures.vertex_arena.data != NULL && renderer_textures.vertex_arena.current_pos != renderer_textures.vertex_arena.data) {
 			WARNING("texture rendering not implemented yet!");
 		}
 	}
+
+	if (initialised_renderers & RENDERER_TEXT) {
+			if (renderer_text.vertex_arena.data != NULL && current_font != NULL) {
+				mat4x4_t projection = mat4x4_ortho(0.0f, (float)screen_size.x, (float)screen_size.y, 0.0f, -1, 1);
+				if (renderer_text.vertex_arena.current_pos != renderer_text.vertex_arena.data)
+					mesh_upload(&renderer_text.mesh, renderer_text.vertex_arena.data, (renderer_text.vertex_arena.current_pos - renderer_text.vertex_arena.data) / sizeof(vertex_text_t), NULL, 0);
+				gpu_vertex_uniform(&ctx, 0, projection.m16, sizeof(mat4x4_t));
+				float text_uniform[2] = {current_font->sdf_smoothing, current_font->sdf_thickness};
+				gpu_fragment_uniform(&ctx, 0, text_uniform, sizeof(float)*2);
+				gpu_fragment_samplers(&ctx, (texture_t[]){current_font_texture}, 1);
+				if (renderer_text.vertex_arena.current_pos != renderer_text.vertex_arena.data)
+					gpu_draw(&ctx, &renderer_text.pipeline, &renderer_text.mesh, 0, (renderer_text.vertex_arena.current_pos - renderer_text.vertex_arena.data) / sizeof(vertex_text_t));
+				arena_reset(&renderer_text.vertex_arena);
+			}
+		}
 	if (initialised_renderers != 0)
 		gpu_end(&ctx);
 }
+
+// BACKEND_SDL_GPU
+#else //GL
+
+void renderer_init(allocator_t* allocator, window_t* window, renderer_e renderer_flags) {
+	if (renderer_flags != 0){
+		ctx = (gl_context_t){0};
+		ctx.allocator = allocator;
+		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+		ctx.gl = SDL_GL_CreateContext(window->SDL3_window);
+		SDL_GL_SetSwapInterval(1);
+
+		gl_init();
+		
+		ctx.window = window;
+	}
+	
+	if (renderer_flags & RENDERER_2D_SHAPES) {
+		renderer_2d_shapes.allocator = allocator;
+		renderer_2d_shapes.shader = shader_create(ctx.allocator, gl_shapes2d_vert, gl_shapes2d_frag, NULL, NULL, NULL, NULL);
+		renderer_2d_shapes.mesh = mesh_create(ctx.allocator);
+		mesh_set_attributes(&renderer_2d_shapes.mesh, (vertex_attribute_e[]){VERTEX_ATTRIB_FLOAT2, VERTEX_ATTRIB_FLOAT4}, 2);
+		renderer_2d_shapes.vertex_arena = arena_create(renderer_2d_shapes.allocator, VERTEX_ARENA_BLOCK_SIZE, 0);
+	}
+	if (renderer_flags & RENDERER_3D_SHAPES) {
+		renderer_3d_shapes.allocator = allocator;
+		renderer_3d_shapes.shader = shader_create(ctx.allocator, gl_shapes3d_vert, gl_shapes3d_frag, NULL, NULL, NULL, NULL);
+		renderer_3d_shapes.mesh = mesh_create(ctx.allocator);
+		mesh_set_attributes(&renderer_3d_shapes.mesh, (vertex_attribute_e[]){VERTEX_ATTRIB_FLOAT3, VERTEX_ATTRIB_FLOAT3, VERTEX_ATTRIB_FLOAT4}, 3);
+		renderer_3d_shapes.vertex_arena = arena_create(renderer_3d_shapes.allocator, VERTEX_ARENA_BLOCK_SIZE, 0);
+	}
+	if (renderer_flags & RENDERER_TEXTURES) {
+		renderer_textures.allocator = allocator;
+		FATAL_ERROR("RENDERER_TEXTURES not implemented");
+	}
+	if (renderer_flags & RENDERER_TEXT) {
+		renderer_text.allocator = allocator;
+		renderer_text.shader = shader_create(ctx.allocator, gl_text_vert, gl_text_frag, NULL, NULL, NULL, NULL);
+		renderer_text.mesh = mesh_create(ctx.allocator);
+		mesh_set_attributes(&renderer_text.mesh, (vertex_attribute_e[]){VERTEX_ATTRIB_FLOAT2, VERTEX_ATTRIB_FLOAT2, VERTEX_ATTRIB_FLOAT4}, 3);
+		renderer_text.vertex_arena = arena_create(renderer_text.allocator, VERTEX_ARENA_BLOCK_SIZE, 0);
+	}
+
+	initialised_renderers |= renderer_flags;
+}
+
+void renderer_deinit() {
+	if (initialised_renderers & RENDERER_2D_SHAPES) {
+		shader_destroy(renderer_2d_shapes.shader);
+		mesh_destroy(&renderer_2d_shapes.mesh);
+		arena_destroy(&renderer_2d_shapes.vertex_arena);
+	}
+	if (initialised_renderers & RENDERER_3D_SHAPES) {
+		shader_destroy(renderer_3d_shapes.shader);
+		mesh_destroy(&renderer_3d_shapes.mesh);
+		arena_destroy(&renderer_3d_shapes.vertex_arena);
+	}
+	if (initialised_renderers & RENDERER_TEXTURES) {
+		// TODO deinit textures
+		FATAL_ERROR("RENDERER_TEXTURES deinit not implemented");
+	}
+	if (initialised_renderers & RENDERER_TEXT) {
+		if(current_font != NULL)
+			texture_destroy(&current_font_texture);
+		shader_destroy(renderer_text.shader);
+		mesh_destroy(&renderer_text.mesh);
+		arena_destroy(&renderer_text.vertex_arena);
+	}
+	if (initialised_renderers != 0){
+		SDL_GL_DestroyContext(ctx.gl);
+		ctx = (gl_context_t){0};
+	}
+
+	initialised_renderers = 0;
+}
+
+void renderer_render(vec2_t screen_size, color_t clear_color, camera_t camera) {
+	if (initialised_renderers != 0){
+		//gl_set_state(GL_STATE_BLENDING, true);
+		//gl_set_state(GL_STATE_CULLING, true);
+		gl_viewport(0, 0, screen_size.x, screen_size.y);
+		gl_clear(clear_color);
+	}
+
+	if (initialised_renderers & RENDERER_3D_SHAPES) {
+		if (renderer_3d_shapes.vertex_arena.data != NULL && (renderer_3d_shapes.vertex_arena.current_pos != renderer_3d_shapes.vertex_arena.data)) {
+			mat4x4_t projection = mat4x4_perspective(deg2rad(camera.fov), (float)screen_size.x / (float)screen_size.y, camera.z_near, camera.z_far);
+			mat4x4_t view = mat4x4_lookat(camera.position, vec3_add(camera.position, camera.direction), camera.up_vector);
+			gl_set_state(GL_STATE_DEPTH_TEST, true);
+			gl_clear_depth();
+			shader_bind(renderer_3d_shapes.shader);
+			shader_uniform_mat4x4(renderer_3d_shapes.shader, "u_proj", projection);
+			shader_uniform_mat4x4(renderer_3d_shapes.shader, "u_view", view);
+			mesh_set_data_vertices(&renderer_3d_shapes.mesh, renderer_3d_shapes.vertex_arena.data, (renderer_3d_shapes.vertex_arena.current_pos - renderer_3d_shapes.vertex_arena.data) / sizeof(vertex_3d_shapes_t));
+			mesh_draw(&renderer_3d_shapes.mesh, false, DRAW_MODE_TRIANGLES, false);
+			gl_set_state(GL_STATE_DEPTH_TEST, false);
+			arena_reset(&renderer_3d_shapes.vertex_arena);
+		}
+	}
+	
+	if (initialised_renderers & RENDERER_TEXT) {
+		if (renderer_text.vertex_arena.data != NULL && current_font != NULL && (renderer_text.vertex_arena.current_pos != renderer_text.vertex_arena.data)) {
+			mat4x4_t projection = mat4x4_ortho(0.0f, (float)screen_size.x, (float)screen_size.y, 0.0f, -1, 1);
+			shader_bind(renderer_text.shader);
+			texture_bind(&current_font_texture, 0);
+			shader_uniform_mat4x4(renderer_text.shader, "u_proj", projection);
+			shader_uniform_int32(renderer_text.shader, "u_font_atlas", 0);
+			shader_uniform_float32(renderer_text.shader, "u_smoothing", current_font->sdf_smoothing);
+			shader_uniform_float32(renderer_text.shader, "u_thickness", current_font->sdf_thickness);
+
+			mesh_set_data_vertices(&renderer_text.mesh, renderer_text.vertex_arena.data, (renderer_text.vertex_arena.current_pos - renderer_text.vertex_arena.data) / sizeof(vertex_text_t));
+			mesh_draw(&renderer_text.mesh, false, DRAW_MODE_TRIANGLES, false);
+			arena_reset(&renderer_text.vertex_arena);
+		}
+	}
+	if (initialised_renderers & RENDERER_2D_SHAPES) {
+		if (renderer_2d_shapes.vertex_arena.data != NULL && (renderer_2d_shapes.vertex_arena.current_pos != renderer_2d_shapes.vertex_arena.data)) {
+			mat4x4_t projection = mat4x4_ortho(0.0f, (float)screen_size.x, (float)screen_size.y, 0.0f, -1, 1);
+
+			shader_bind(renderer_2d_shapes.shader);
+			shader_uniform_mat4x4(renderer_2d_shapes.shader, "u_proj", projection);
+
+			mesh_set_data_vertices(&renderer_2d_shapes.mesh, renderer_2d_shapes.vertex_arena.data, (renderer_2d_shapes.vertex_arena.current_pos - renderer_2d_shapes.vertex_arena.data) / sizeof(vertex_2d_shapes_t));
+			mesh_draw(&renderer_2d_shapes.mesh, false, DRAW_MODE_TRIANGLES, false);
+			arena_reset(&renderer_2d_shapes.vertex_arena);
+		}
+	}
+	if (initialised_renderers & RENDERER_TEXTURES) {
+		if (renderer_textures.vertex_arena.data != NULL && renderer_textures.vertex_arena.current_pos != renderer_textures.vertex_arena.data) {
+			WARNING("texture rendering not implemented yet!");
+		}
+	}
+	if (initialised_renderers != 0){
+		SDL_GL_SwapWindow(ctx.window->SDL3_window);
+		//gl_set_state(GL_STATE_BLENDING, false);
+		//gl_set_state(GL_STATE_CULLING, false);
+	}
+}
+#endif
 
 void renderer_draw_2d_shape_mesh(vertex_2d_shapes_t* vertices_ccw, size_t num_vertices) {
 	if (!(initialised_renderers & RENDERER_2D_SHAPES)) {
 		ERROR("RENDERER_2D_SHAPES uninitialized");
 		return;
 	}
-	if (num_vertices < 3 || num_vertices % 3 != 0) {
+	if ((num_vertices < 3) || (num_vertices % 3 != 0)) {
 		ERROR("Wrong vertex count in renderer_draw_2d_shape_mesh");
 		return;
 	}
@@ -908,8 +1144,18 @@ void renderer_draw_cylinder(vec3_t pos1, vec3_t pos2, float radius, color_t colo
 
 void renderer_set_font(font_t* font) {
 	current_font = font;
+	if(current_font != NULL)
+		texture_destroy(&current_font_texture);
+	#ifdef BACKEND_SDL_GPU
 	current_font_texture = texture_create(&ctx, current_font->atlas_width, current_font->atlas_height, TEXTURE_FORMAT_GREY_8BIT, TEXTURE_FILTERING_LINEAR);
 	texture_upload(&current_font_texture, (void*)current_font->atlas, current_font->atlas_width * current_font->atlas_height);
+	//BACKEND_SDL_GPU
+	#else//GL
+	current_font_texture = texture_create(ctx.allocator, current_font->atlas_width, current_font->atlas_height, TEXTURE_CHANNELS_R, TEXTURE_BITS_8, TEXTURE_FORMAT_TYPE_INT);
+	texture_filtering(&current_font_texture, TEXTURE_FILTERING_LINEAR, TEXTURE_FILTERING_LINEAR);
+	texture_wrapping(&current_font_texture, TEXTURE_WRAPPING_REPEAT, TEXTURE_WRAPPING_REPEAT);
+	texture_set_pixels(&current_font_texture, current_font->atlas_width, current_font->atlas_height, (void*)current_font->atlas);
+	#endif
 }
 
 void renderer_draw_text(const char* string, vec2_t pos, float line_height, color_t color) {
@@ -918,7 +1164,7 @@ void renderer_draw_text(const char* string, vec2_t pos, float line_height, color
 		return;
 	}
 	if (strlen(string) < 1) return;
-	if (current_font == NULL || current_font_texture.sdl_texture == NULL) {
+	if (current_font == NULL) {
 		ERROR("No font set for text rendering!");
 		return;
 	}

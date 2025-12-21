@@ -35,12 +35,12 @@
 // vec3_rotate_around_axis(p, o, axis, r) 	- Rotate around axis & point (r in radians)
 // vec3_distance(a, b)        				- Distance between points
 
-// === MATRIX4x4 (mat4x4_t) ===
+// === MATRIX4x4 (mat4x4_t) === (column major => matrix[col][row])
 // mat4x4(x)                  							- Constructor (all values = x)
 // mat4x4_copy_array(a)                  				- Constructor copies float a[16]
 // mat4x4_identity()          							- Identity matrix
 // mat4x4_mul(a, b)           							- Matrix multiplication (returns new matrix)
-// mat4x4_mul_vec4(a, b)								- multiplies Matrix with vec4 (returns new vec4)
+// mat4x4_mul_vec4(a, vec4)								- multiplies Matrix with vec4 (returns new vec4)
 // mat4x4_translate(out, x, y, z) 						- Translation (multiplies out)
 // mat4x4_scale(out, x, y, z)     						- Scale (multiplies out)
 // mat4x4_rotate(out, angle_rad, axis) 					- Rotation around axis (multiplies out)
@@ -370,7 +370,7 @@ static inline vec3_t vec3_rotate_around_axis(vec3_t point, vec3_t origin, vec3_t
 
 static inline mat4x4_t mat4x4_copy_array(float array[16]) {
 	mat4x4_t m;
-	memcpy(m.m16, array, 16);
+	memcpy(m.m16, array, 16 * sizeof(float));
 	return m;
 }
 
@@ -386,7 +386,7 @@ static inline mat4x4_t mat4x4_mul(const mat4x4_t* a, const mat4x4_t* b) {
 		for (int j = 0; j < 4; j++) {
 			float sum = 0.0f;
 			for (int k = 0; k < 4; k++) {
-				sum += a->m[i][k] * b->m[k][j];
+				sum += a->m[k][j] * b->m[i][k];
 			}
 			result.m[i][j] = sum;
 		}
@@ -394,15 +394,6 @@ static inline mat4x4_t mat4x4_mul(const mat4x4_t* a, const mat4x4_t* b) {
 	return result;
 }
 
-/*static inline vec4_t mat4x4_mul_vec4(const mat4x4_t* m, const vec4_t* v) {
-	return vec4(
-		m->m[0][0] * v->x + m->m[0][1] * v->y + m->m[0][2] * v->z + m->m[0][3] * v->w,
-		m->m[1][0] * v->x + m->m[1][1] * v->y + m->m[1][2] * v->z + m->m[1][3] * v->w,
-		m->m[2][0] * v->x + m->m[2][1] * v->y + m->m[2][2] * v->z + m->m[2][3] * v->w,
-		m->m[3][0] * v->x + m->m[3][1] * v->y + m->m[3][2] * v->z + m->m[3][3] * v->w
-	);
-}*/
-//column major
 static inline vec4_t mat4x4_mul_vec4(const mat4x4_t* m, const vec4_t* v) {
 	return vec4(
 		m->m[0][0]*v->x + m->m[1][0]*v->y + m->m[2][0]*v->z + m->m[3][0]*v->w,
@@ -418,9 +409,9 @@ static inline void mat4x4_translate(mat4x4_t* out, float x, float y, float z) {
 	t.m[1][1] = 1.0f;
 	t.m[2][2] = 1.0f;
 	t.m[3][3] = 1.0f;
-	t.m[0][3] = x;
-	t.m[1][3] = y;
-	t.m[2][3] = z;
+	t.m[3][0] = x;
+	t.m[3][1] = y;
+	t.m[3][2] = z;
 
 	*out = mat4x4_mul(out, &t);
 }

@@ -10,9 +10,10 @@ arena_t arena_create(allocator_t* allocator, size_t chunk_size, size_t num_start
 		.chunk_size = chunk_size,
 		.num_start_chunks = num_start_chunks,
 		.num_chunks = num_start_chunks,
-		.data = allocator->amalloc(chunk_size * num_start_chunks),
 		.current_pos = (void*)arena.data,
 	};
+	if(chunk_size * num_start_chunks > 0)
+		arena.data = allocator->amalloc(chunk_size * num_start_chunks);
 	return arena;
 }
 
