@@ -38,7 +38,6 @@ void gl_set_state(gl_state_e state, bool active) {
                 GL_CALL(glEnable(GL_DEPTH_TEST));
                 GL_CALL(glDepthMask(GL_TRUE));
                 GL_CALL(glDepthFunc(GL_LESS));
-                //GL_CALL(glDepthFunc(GL_ALWAYS));
                 GL_CALL(glClearDepth(1.0));
                 GL_CALL(glClear(GL_DEPTH_BUFFER_BIT));
             } else {

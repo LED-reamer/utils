@@ -888,8 +888,8 @@ void renderer_deinit() {
 
 void renderer_render(vec2_t screen_size, color_t clear_color, camera_t camera) {
 	if (initialised_renderers != 0){
-		//gl_set_state(GL_STATE_BLENDING, true);
-		//gl_set_state(GL_STATE_CULLING, true);
+		gl_set_state(GL_STATE_BLENDING, true);
+		gl_set_state(GL_STATE_CULLING, true);
 		gl_viewport(0, 0, screen_size.x, screen_size.y);
 		gl_clear(clear_color);
 	}
@@ -898,12 +898,12 @@ void renderer_render(vec2_t screen_size, color_t clear_color, camera_t camera) {
 		if (renderer_3d_shapes.vertex_arena.data != NULL && (renderer_3d_shapes.vertex_arena.current_pos != renderer_3d_shapes.vertex_arena.data)) {
 			mat4x4_t projection = mat4x4_perspective(deg2rad(camera.fov), (float)screen_size.x / (float)screen_size.y, camera.z_near, camera.z_far);
 			mat4x4_t view = mat4x4_lookat(camera.position, vec3_add(camera.position, camera.direction), camera.up_vector);
-			gl_set_state(GL_STATE_DEPTH_TEST, true);
 			gl_clear_depth();
 			shader_bind(renderer_3d_shapes.shader);
 			shader_uniform_mat4x4(renderer_3d_shapes.shader, "u_proj", projection);
 			shader_uniform_mat4x4(renderer_3d_shapes.shader, "u_view", view);
 			mesh_set_data_vertices(&renderer_3d_shapes.mesh, renderer_3d_shapes.vertex_arena.data, (renderer_3d_shapes.vertex_arena.current_pos - renderer_3d_shapes.vertex_arena.data) / sizeof(vertex_3d_shapes_t));
+			gl_set_state(GL_STATE_DEPTH_TEST, true);
 			mesh_draw(&renderer_3d_shapes.mesh, false, DRAW_MODE_TRIANGLES, false);
 			gl_set_state(GL_STATE_DEPTH_TEST, false);
 			arena_reset(&renderer_3d_shapes.vertex_arena);
@@ -944,8 +944,8 @@ void renderer_render(vec2_t screen_size, color_t clear_color, camera_t camera) {
 	}
 	if (initialised_renderers != 0){
 		SDL_GL_SwapWindow(ctx.window->SDL3_window);
-		//gl_set_state(GL_STATE_BLENDING, false);
-		//gl_set_state(GL_STATE_CULLING, false);
+		gl_set_state(GL_STATE_BLENDING, false);
+		gl_set_state(GL_STATE_CULLING, false);
 	}
 }
 #endif
@@ -1143,9 +1143,9 @@ void renderer_draw_cylinder(vec3_t pos1, vec3_t pos2, float radius, color_t colo
 }
 
 void renderer_set_font(font_t* font) {
-	current_font = font;
 	if(current_font != NULL)
 		texture_destroy(&current_font_texture);
+	current_font = font;
 	#ifdef BACKEND_SDL_GPU
 	current_font_texture = texture_create(&ctx, current_font->atlas_width, current_font->atlas_height, TEXTURE_FORMAT_GREY_8BIT, TEXTURE_FILTERING_LINEAR);
 	texture_upload(&current_font_texture, (void*)current_font->atlas, current_font->atlas_width * current_font->atlas_height);

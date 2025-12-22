@@ -1,4 +1,3 @@
-#define BACKEND_SDL_GPU
 #include <stdlib.h>
 
 #include "utils/allocator.h"
@@ -13,8 +12,8 @@ int main(void) {
 	memory_tracker_init(false);
 	window_t win = window_create("renderer", 800, 600);
 	renderer_init(allocator_get_default(), &win, RENDERER_2D_SHAPES | RENDERER_TEXT | RENDERER_3D_SHAPES);
-
 	font_t font = font_create_from_file(allocator_get_default(), "font.ttf", 128.0f);
+	LOG("TEST");
 	renderer_set_font(&font);
 
 	camera_t camera = renderer_get_default_camera();
