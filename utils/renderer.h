@@ -67,13 +67,9 @@ typedef struct {
 
 void renderer_draw_3d_shape_mesh(vertex_3d_shapes_t* vertices_ccw, size_t num_vertices);
 void renderer_draw_3d_triangle(vec3_t left, vec3_t top, vec3_t right, color_t color);
+void renderer_draw_3d_rectangle_points(vec3_t top_left, vec3_t top_right, vec3_t bottom_right, vec3_t bottom_left, color_t color);
 void renderer_draw_cylinder(vec3_t pos1, vec3_t pos2, float radius, color_t color);
-// void renderer_draw_rectangle_points(vec2_t top_left, vec2_t top_right, vec2_t bottom_right, vec2_t bottom_left, color_t color);
-// void renderer_draw_rectangle_size(vec2_t top_left, vec2_t size, color_t color);
-// void renderer_draw_rectangle_center(vec2_t center, vec2_t size, color_t color);
-// void renderer_draw_line(vec2_t pos1, vec2_t pos2, float thickness, color_t color);
-// void renderer_draw_circle(vec2_t position, float radius, color_t color);
 
 // -=TEXT-RENDERER=-
 void renderer_set_font(font_t* font);
-void renderer_draw_text(const char* string, vec2_t pos, float line_height, color_t color);
+vec2_t renderer_draw_text(const char* string, vec2_t pos, float line_height, color_t color); //returns ending position

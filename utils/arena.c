@@ -12,8 +12,10 @@ arena_t arena_create(allocator_t* allocator, size_t chunk_size, size_t num_start
 		.num_chunks = num_start_chunks,
 		.current_pos = (void*)arena.data,
 	};
-	if(chunk_size * num_start_chunks > 0)
-		arena.data = allocator->amalloc(chunk_size * num_start_chunks);
+	if(chunk_size * num_start_chunks > 0){
+		arena.data = allocator->acalloc(1, chunk_size * num_start_chunks);
+		arena.current_pos = (void*)arena.data;
+	}
 	return arena;
 }
 
@@ -52,4 +54,8 @@ void arena_destroy(arena_t* arena) {
 	if (arena->data != NULL)
 		arena->allocator->afree(arena->data);
 	*arena = (arena_t){0};
+}
+
+size_t arena_allocated(arena_t* arena){
+	return arena->current_pos - arena->data;
 }

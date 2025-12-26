@@ -265,6 +265,25 @@ long double window_get_time_s() {
 	return ticks / (long double)1000000000;
 }
 
+void window_text_input_begin(window_t* window, char* buffer, size_t size){
+	if(window->text_input_mode) return;
+
+	window->current_text_input_buffer_size = size;
+	window->current_text_input_buffer = buffer;
+	memset(window->current_text_input_buffer, 0, size);
+	SDL_StartTextInput(window->SDL3_window);
+	window->text_input_mode = true;
+}
+
+void window_text_input_end(window_t* window){
+	if(!window->text_input_mode) return;
+	
+	SDL_StopTextInput(window->SDL3_window);
+	window->current_text_input_buffer_size = 0;
+	window->current_text_input_buffer = NULL;
+	window->text_input_mode = false;
+}
+
 void __window_input_update(window_t* window) {
 	if (num_keyboard_states != NUM_KEYBOARD_STATES) FATAL_ERROR("Wrong SDL3 SDL_SCANCODE_COUNT - outdated?");
 	if (sizeof(window->keyboard_state_previous) != NUM_KEYBOARD_STATES) FATAL_ERROR("Wrong window->keyboard_state_previous static size");
@@ -285,8 +304,19 @@ void __window_input_update(window_t* window) {
 			if (e.wheel.y != 0)
 				mouse_y_scroll += e.wheel.y;
 		}
-		if (e.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
+		else if (e.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
 			window_to_close = e.window.windowID;
+		}
+		else if (window->text_input_mode && e.type == SDL_EVENT_TEXT_INPUT){
+			if(window->current_text_input_buffer_size > strlen(window->current_text_input_buffer) + strlen(e.text.text)){
+		    	strcat(window->current_text_input_buffer, e.text.text);
+			}
+		}
+		else if (window->text_input_mode && (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_BACKSPACE)) {
+		    size_t len = strlen(window->current_text_input_buffer);
+		    if (len > 0) {
+		        window->current_text_input_buffer[len - 1] = '\0';
+		    }
 		}
 	}
 

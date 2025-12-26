@@ -15,6 +15,10 @@ typedef struct {
 	bool keyboard_state_previous[512];	//! should be same as SDL_SCANCODE_COUNT
 	uint32_t mouse_state_current;
 	uint32_t mouse_state_previous;
+
+	bool text_input_mode;
+	size_t current_text_input_buffer_size;
+	char* current_text_input_buffer;
 } window_t;
 
 typedef enum {
@@ -49,10 +53,14 @@ int64_t window_get_time_ns();
 long double window_get_time_s();
 
 // input
+void window_text_input_begin(window_t* window, char* buffer, size_t size);
+void window_text_input_end(window_t* window);
+
 typedef enum key_e key_e;
 bool key_down(window_t* window, key_e key);
 bool key_just_down(window_t* window, key_e key);
 bool key_just_released(window_t* window, key_e key);
+
 
 typedef enum {
 	MOUSE_BUTTON_LEFT = 1,

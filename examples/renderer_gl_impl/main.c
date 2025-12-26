@@ -29,6 +29,8 @@ int main(void) {
 		renderer_draw_cylinder(vec3(0, 0, 0), vec3(0, 1, 0), .05, color(0, 1, 0, 1));
 		renderer_draw_cylinder(vec3(0, 0, 0), vec3(0, 0, 1), .05, color(0, 0, 1, 1));
 
+		renderer_draw_3d_rectangle_points(vec3(0, 0, 0), vec3(-3, 0, 0), vec3(-3, -3, -1), vec3(0, -3, -1), color(1, 0, 0, 1));
+
 
 		renderer_render(vec2(window_get_size(&win).x, window_get_size(&win).y), color(1, 1, 1, 1), camera);
 

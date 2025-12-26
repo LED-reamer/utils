@@ -1063,6 +1063,26 @@ void renderer_draw_3d_triangle(vec3_t left, vec3_t top, vec3_t right, color_t co
 	renderer_draw_3d_shape_mesh(triangle_vertex_array, 3);
 }
 
+void renderer_draw_3d_rectangle_points(vec3_t top_left, vec3_t top_right, vec3_t bottom_right, vec3_t bottom_left, color_t color){
+	vec3_t side_a = vec3_sub(top_right, top_left);
+	vec3_t side_b = vec3_sub(bottom_left, top_left);
+	vec3_t normal1 = vec3_cross(side_b, side_a);
+	side_a = vec3_sub(top_right, bottom_right);
+	side_b = vec3_sub(bottom_left, bottom_right);
+	vec3_t normal2 = vec3_cross(side_a, side_b);
+	
+	vertex_3d_shapes_t quad_vertex_array[6] = {
+		{top_left, normal1, color},
+		{bottom_left, normal1, color},
+		{top_right, normal1, color},
+
+		{bottom_right, normal2, color},
+		{top_right, normal2, color},
+		{bottom_left, normal2, color},
+	};
+	renderer_draw_3d_shape_mesh(quad_vertex_array, 6);
+}
+
 void renderer_draw_cylinder(vec3_t pos1, vec3_t pos2, float radius, color_t color) {
 	vec3_t axis = vec3_sub(pos2, pos1);
 	vec3_t axis_normalized = vec3_normalize(axis);
@@ -1158,15 +1178,15 @@ void renderer_set_font(font_t* font) {
 	#endif
 }
 
-void renderer_draw_text(const char* string, vec2_t pos, float line_height, color_t color) {
+vec2_t renderer_draw_text(const char* string, vec2_t pos, float line_height, color_t color) {
 	if (!(initialised_renderers & RENDERER_TEXT)) {
 		ERROR("RENDERER_TEXT uninitialized");
-		return;
+		return pos;
 	}
-	if (strlen(string) < 1) return;
+	if (strlen(string) < 1) return pos;
 	if (current_font == NULL) {
 		ERROR("No font set for text rendering!");
-		return;
+		return pos;
 	}
 
 	float scale = line_height / current_font->line_height;
@@ -1214,4 +1234,6 @@ void renderer_draw_text(const char* string, vec2_t pos, float line_height, color
 		x_offset -= glyph->x_offset * scale;
 		x_offset += glyph->advance * scale;
 	}
+
+	return vec2_add(pos, vec2(x_offset, y_offset));
 }

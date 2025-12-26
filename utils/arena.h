@@ -18,3 +18,6 @@ arena_t arena_create(allocator_t* allocator, size_t chunk_size, size_t num_start
 void* arena_allocate(arena_t* arena, size_t size);
 void arena_reset(arena_t* arena);
 void arena_destroy(arena_t* arena);
+size_t arena_allocated(arena_t* arena);
+
+//TODO add arena_set_scaling_mode with ARENA_LINEAR(add 1 block everytime we run out of memory), ARENA_DOUBLE (which doubles alloction size each time), ARENA_???
