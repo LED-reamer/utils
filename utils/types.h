@@ -52,6 +52,7 @@
 
 // === MISC ===
 // deg2rad(degrees)           - Degrees to radians conversion
+// rad2deg(rad)           - Radians to degrees conversion
 
 //(forward-)declarations:
 // signed
@@ -231,6 +232,10 @@ typedef union rectangle_t {
 // inline functions
 static inline float deg2rad(float degrees) {
 	return degrees * (PI / 180.0f);
+}
+
+static inline float rad2deg(float rad) {
+	return rad * (180.0f / PI);
 }
 
 static inline vec2_t vec2_add(vec2_t a, vec2_t b) {

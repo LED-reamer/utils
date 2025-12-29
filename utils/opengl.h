@@ -84,6 +84,7 @@ texture_t* rendertarget_get_texture(rendertarget_t* rendertarget);
 typedef enum gl_state_e{
 	GL_STATE_BLENDING,
 	GL_STATE_DEPTH_TEST,
+	GL_STATE_DEPTH_WRITING,
 	GL_STATE_CULLING,
 }gl_state_e;
 

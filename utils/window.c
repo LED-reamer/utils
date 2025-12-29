@@ -10,6 +10,7 @@
 
 #define NUM_KEYBOARD_STATES SDL_SCANCODE_COUNT
 
+//TODO store in static struct...
 uint32_t num_windows = 0;
 const bool* keyboard_state_current = NULL;
 int32_t num_keyboard_states = 0;
@@ -380,6 +381,10 @@ vec2_t mouse_get_relative_position(window_t* window) {
 		return vec2(0, 0);
 	}
 	return vec2(mouse_dx, mouse_dy);
+}
+
+void mouse_set_relative_mode(window_t* window, bool active){
+	SDL_SetWindowRelativeMouseMode(window->SDL3_window, active);
 }
 
 void mouse_set_system_cursor(mouse_system_cursor_e cursor) {

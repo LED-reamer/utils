@@ -14,15 +14,16 @@ int main(void) {
 	renderer_set_font(&font);
 
 	camera_t camera = renderer_get_default_camera();
+	mouse_set_relative_mode(&win, true);
 	
 	while (window_open(&win)) {
 		window_update(&win);
 
-		renderer_draw_line(vec2(0, 0), mouse_get_position(&win), 5, color(0, 0, 0, 1));
+		renderer_update_fps_camera(&camera);
+
 		const char* string = "Hello World from renderer";
 		float w, h;
 		font_string_size(&font, string, 128, &w, &h);
-		renderer_draw_rectangle_size(vec2(mouse_get_position(&win).x, mouse_get_position(&win).y), vec2(w, h), color(1, 0, 0, .2));
 		renderer_draw_text(string, vec2(0, 0), 64, color(0, 0, 0, 1));
 
 		renderer_draw_cylinder(vec3(0, 0, 0), vec3(1, 0, 0), .05, color(1, 0, 0, 1));
@@ -34,15 +35,17 @@ int main(void) {
 
 		renderer_render(vec2(window_get_size(&win).x, window_get_size(&win).y), color(1, 1, 1, 1), camera);
 
-		//camera.direction = vec3(0, 0, 1);
-
 		if (key_just_down(&win, KEY_ESCAPE)) window_close(&win);
-		if (key_down(&win, KEY_A)) camera.position.x += .01;
-		if (key_down(&win, KEY_D)) camera.position.x += -.01;
-		if (key_down(&win, KEY_W)) camera.position.z += .01;
-		if (key_down(&win, KEY_S)) camera.position.z += -.01;
-		if (key_down(&win, KEY_SPACE)) camera.position.y += .01;
-		if (key_down(&win, KEY_LSHIFT)) camera.position.y += -.01;
+		float speed = 0.01f;
+		vec3_t movement = vec3(0, 0, 0);
+		vec3_t right = vec3_normalize(vec3_cross(camera.direction, vec3(0, 1, 0)));
+		if (key_down(&win, KEY_W)) movement = vec3_add(movement, vec3_scale(camera.direction,  speed));
+		if (key_down(&win, KEY_S)) movement = vec3_add(movement, vec3_scale(camera.direction, -speed));
+		if (key_down(&win, KEY_D)) movement = vec3_add(movement, vec3_scale(right,  speed));
+		if (key_down(&win, KEY_A)) movement = vec3_add(movement, vec3_scale(right, -speed));
+		if (key_down(&win, KEY_SPACE))  movement.y += speed;
+		if (key_down(&win, KEY_LSHIFT)) movement.y -= speed;
+		camera.position = vec3_add(camera.position, movement);
 	}
 
 	font_destroy(&font);

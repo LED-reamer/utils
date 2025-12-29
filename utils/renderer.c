@@ -8,6 +8,8 @@
 #define MAX_BUFFER_VERTICES 1024 * 10  // for each renderer
 #define VERTEX_ARENA_BLOCK_SIZE 1024   // for each renderer
 #define CIRCLE_SEGMENTS (25)
+#define SPHERE_STACKS 8
+#define SPHERE_SLICES 16
 
 typedef struct {
 	vec2_t position;
@@ -620,7 +622,7 @@ const char* gl_shapes3d_frag = "#version 330\n"
 "out vec4 FragColor;\n"
 "void main()\n"
 "{\n"
-"   FragColor = v_color + vec4(vec3(v_color) + dot(v_normal, vec3(0, -1, -0.05))/1.5, 1);\n"
+"   FragColor = v_color + vec4(vec3(v_color) + dot(v_normal, vec3(0, -1, -0.05))/1.5, 0);\n"
 "}\n";
 const char* gl_text_vert = "#version 330\n"
 "layout (location = 0) in vec2 a_pos;\n"
@@ -655,6 +657,7 @@ typedef struct {
 	shader_t shader;
 	mesh_t mesh;
 	arena_t vertex_arena;
+	arena_t vertex_arena_transparent;
 } renderer_data_t;
 
 typedef struct{
@@ -677,12 +680,40 @@ static camera_t default_camera = {
 	.direction = vec3(0, 0, 1),
 	.up_vector = vec3(0, 1, 0),
 	.fov = 60,
+	.sensitivity = 0.3f,
+	.yaw = 90.0f,
+	.pitch = 0.0f,
 	.z_near = 0.1f,
 	.z_far = 1000.0f,
 };
 
 camera_t renderer_get_default_camera() {
 	return default_camera;
+}
+
+void renderer_update_fps_camera(camera_t* camera){
+	vec2_t rel_mouse = mouse_get_relative_position(ctx.window);
+
+	float offset_x = rel_mouse.x;
+	float offset_y = -rel_mouse.y;
+
+	offset_x *= camera->sensitivity;
+	offset_y *= camera->sensitivity;
+
+	camera->yaw += offset_x;
+	camera->pitch += offset_y;
+
+	if(camera->pitch > 89.0f)
+		camera->pitch = 89.0f;
+	if(camera->pitch < -89.0f)
+		camera->pitch = -89.0f;
+
+	vec3_t front;
+	front.x = cos(deg2rad(camera->yaw)) * cos(deg2rad(camera->pitch));
+	front.y = sin(deg2rad(camera->pitch));
+	front.z = sin(deg2rad(camera->yaw)) * cos(deg2rad(camera->pitch));
+  
+	camera->direction = vec3_normalize(front);
 }
 
 font_t* current_font = NULL;
@@ -840,6 +871,7 @@ void renderer_init(allocator_t* allocator, window_t* window, renderer_e renderer
 		renderer_3d_shapes.mesh = mesh_create(ctx.allocator);
 		mesh_set_attributes(&renderer_3d_shapes.mesh, (vertex_attribute_e[]){VERTEX_ATTRIB_FLOAT3, VERTEX_ATTRIB_FLOAT3, VERTEX_ATTRIB_FLOAT4}, 3);
 		renderer_3d_shapes.vertex_arena = arena_create(renderer_3d_shapes.allocator, VERTEX_ARENA_BLOCK_SIZE, 0);
+		renderer_3d_shapes.vertex_arena_transparent = arena_create(renderer_3d_shapes.allocator, VERTEX_ARENA_BLOCK_SIZE, 0);
 	}
 	if (renderer_flags & RENDERER_TEXTURES) {
 		renderer_textures.allocator = allocator;
@@ -866,6 +898,7 @@ void renderer_deinit() {
 		shader_destroy(renderer_3d_shapes.shader);
 		mesh_destroy(&renderer_3d_shapes.mesh);
 		arena_destroy(&renderer_3d_shapes.vertex_arena);
+		arena_destroy(&renderer_3d_shapes.vertex_arena_transparent);
 	}
 	if (initialised_renderers & RENDERER_TEXTURES) {
 		// TODO deinit textures
@@ -898,15 +931,27 @@ void renderer_render(vec2_t screen_size, color_t clear_color, camera_t camera) {
 		if (renderer_3d_shapes.vertex_arena.data != NULL && (renderer_3d_shapes.vertex_arena.current_pos != renderer_3d_shapes.vertex_arena.data)) {
 			mat4x4_t projection = mat4x4_perspective(deg2rad(camera.fov), (float)screen_size.x / (float)screen_size.y, camera.z_near, camera.z_far);
 			mat4x4_t view = mat4x4_lookat(camera.position, vec3_add(camera.position, camera.direction), camera.up_vector);
+
 			gl_clear_depth();
+
 			shader_bind(renderer_3d_shapes.shader);
 			shader_uniform_mat4x4(renderer_3d_shapes.shader, "u_proj", projection);
 			shader_uniform_mat4x4(renderer_3d_shapes.shader, "u_view", view);
-			mesh_set_data_vertices(&renderer_3d_shapes.mesh, renderer_3d_shapes.vertex_arena.data, (renderer_3d_shapes.vertex_arena.current_pos - renderer_3d_shapes.vertex_arena.data) / sizeof(vertex_3d_shapes_t));
+
 			gl_set_state(GL_STATE_DEPTH_TEST, true);
+
+			mesh_set_data_vertices(&renderer_3d_shapes.mesh, renderer_3d_shapes.vertex_arena.data, (renderer_3d_shapes.vertex_arena.current_pos - renderer_3d_shapes.vertex_arena.data) / sizeof(vertex_3d_shapes_t));
 			mesh_draw(&renderer_3d_shapes.mesh, false, DRAW_MODE_TRIANGLES, false);
+
+			gl_set_state(GL_STATE_DEPTH_WRITING, false);
+			mesh_set_data_vertices(&renderer_3d_shapes.mesh, renderer_3d_shapes.vertex_arena_transparent.data, (renderer_3d_shapes.vertex_arena_transparent.current_pos - renderer_3d_shapes.vertex_arena_transparent.data) / sizeof(vertex_3d_shapes_t));
+			mesh_draw(&renderer_3d_shapes.mesh, false, DRAW_MODE_TRIANGLES, false);
+			gl_set_state(GL_STATE_DEPTH_WRITING, true);
+
 			gl_set_state(GL_STATE_DEPTH_TEST, false);
+
 			arena_reset(&renderer_3d_shapes.vertex_arena);
+			arena_reset(&renderer_3d_shapes.vertex_arena_transparent);
 		}
 	}
 	
@@ -1036,7 +1081,7 @@ void renderer_draw_circle(vec2_t position, float radius, color_t color) {
 	}
 }
 
-void renderer_draw_3d_shape_mesh(vertex_3d_shapes_t* vertices_ccw, size_t num_vertices) {
+void renderer_draw_3d_shape_mesh(vertex_3d_shapes_t* vertices_ccw, size_t num_vertices, bool transparent) {
 	if (!(initialised_renderers & RENDERER_3D_SHAPES)) {
 		ERROR("RENDERER_3D_SHAPES uninitialized");
 		return;
@@ -1045,9 +1090,13 @@ void renderer_draw_3d_shape_mesh(vertex_3d_shapes_t* vertices_ccw, size_t num_ve
 		ERROR("Wrong vertex count in renderer_draw_3d_shape_mesh");
 		return;
 	}
-
-	vertex_3d_shapes_t* ptr = arena_allocate(&renderer_3d_shapes.vertex_arena, sizeof(vertex_3d_shapes_t) * num_vertices);
-	memcpy(ptr, vertices_ccw, sizeof(vertex_3d_shapes_t) * num_vertices);
+	if(transparent){
+		vertex_3d_shapes_t* ptr = arena_allocate(&renderer_3d_shapes.vertex_arena_transparent, sizeof(vertex_3d_shapes_t) * num_vertices);
+		memcpy(ptr, vertices_ccw, sizeof(vertex_3d_shapes_t) * num_vertices);
+	} else /*opaque*/ {
+		vertex_3d_shapes_t* ptr = arena_allocate(&renderer_3d_shapes.vertex_arena, sizeof(vertex_3d_shapes_t) * num_vertices);
+		memcpy(ptr, vertices_ccw, sizeof(vertex_3d_shapes_t) * num_vertices);
+	}
 }
 
 void renderer_draw_3d_triangle(vec3_t left, vec3_t top, vec3_t right, color_t color) {
@@ -1060,7 +1109,11 @@ void renderer_draw_3d_triangle(vec3_t left, vec3_t top, vec3_t right, color_t co
 		{right, normal, color},
 		{top, normal, color},
 	};
-	renderer_draw_3d_shape_mesh(triangle_vertex_array, 3);
+
+	if(color.a == 1)
+		renderer_draw_3d_shape_mesh(triangle_vertex_array, 3, false);
+	else
+		renderer_draw_3d_shape_mesh(triangle_vertex_array, 3, true);
 }
 
 void renderer_draw_3d_rectangle_points(vec3_t top_left, vec3_t top_right, vec3_t bottom_right, vec3_t bottom_left, color_t color){
@@ -1080,7 +1133,10 @@ void renderer_draw_3d_rectangle_points(vec3_t top_left, vec3_t top_right, vec3_t
 		{top_right, normal2, color},
 		{bottom_left, normal2, color},
 	};
-	renderer_draw_3d_shape_mesh(quad_vertex_array, 6);
+	if(color.a == 1)
+		renderer_draw_3d_shape_mesh(quad_vertex_array, 6, false);
+	else
+		renderer_draw_3d_shape_mesh(quad_vertex_array, 6, true);
 }
 
 void renderer_draw_cylinder(vec3_t pos1, vec3_t pos2, float radius, color_t color) {
@@ -1159,7 +1215,39 @@ void renderer_draw_cylinder(vec3_t pos1, vec3_t pos2, float radius, color_t colo
 		vertices[v++] = (vertex_3d_shapes_t){circle_points_upper[next], normal, color};
 	}
 
-	renderer_draw_3d_shape_mesh(vertices, total_vertices);
+	if(color.a == 1)
+		renderer_draw_3d_shape_mesh(vertices, total_vertices, false);
+	else
+		renderer_draw_3d_shape_mesh(vertices, total_vertices, true);
+}
+
+void renderer_draw_sphere(vec3_t pos, float radius, color_t color){
+	vertex_3d_shapes_t vertices[SPHERE_STACKS*SPHERE_SLICES*6];
+	uint32_t v=0;
+
+	for(uint32_t i=0;i<SPHERE_STACKS;i++){
+		float p0=PI*i/SPHERE_STACKS, p1=PI*(i+1)/SPHERE_STACKS;
+		for(uint32_t j=0;j<SPHERE_SLICES;j++){
+			float t0=2*PI*j/SPHERE_SLICES, t1=2*PI*(j+1)/SPHERE_SLICES;
+
+			vec3_t n0=vec3(sinf(p0)*cosf(t0),cosf(p0),sinf(p0)*sinf(t0));
+			vec3_t n1=vec3(sinf(p1)*cosf(t0),cosf(p1),sinf(p1)*sinf(t0));
+			vec3_t n2=vec3(sinf(p1)*cosf(t1),cosf(p1),sinf(p1)*sinf(t1));
+			vec3_t n3=vec3(sinf(p0)*cosf(t1),cosf(p0),sinf(p0)*sinf(t1));
+
+			vertices[v++] = (vertex_3d_shapes_t){vec3_add(pos,vec3_scale(n0,radius)),n0,color};
+			vertices[v++] = (vertex_3d_shapes_t){vec3_add(pos,vec3_scale(n2,radius)),n2,color};
+			vertices[v++] = (vertex_3d_shapes_t){vec3_add(pos,vec3_scale(n1,radius)),n1,color};
+
+			vertices[v++] = (vertex_3d_shapes_t){vec3_add(pos,vec3_scale(n0,radius)),n0,color};
+			vertices[v++] = (vertex_3d_shapes_t){vec3_add(pos,vec3_scale(n3,radius)),n3,color};
+			vertices[v++] = (vertex_3d_shapes_t){vec3_add(pos,vec3_scale(n2,radius)),n2,color};
+		}
+	}
+	if(color.a == 1)
+		renderer_draw_3d_shape_mesh(vertices, v, false);
+	else
+		renderer_draw_3d_shape_mesh(vertices, v, true);
 }
 
 void renderer_set_font(font_t* font) {

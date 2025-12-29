@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-//hashmap with open adressing, linear probing and dynamic resizing
+//hashmap with open addressing, linear probing and dynamic resizing
 
 typedef uint64_t hashmap_key_t;
 

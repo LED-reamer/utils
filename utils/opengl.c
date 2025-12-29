@@ -36,16 +36,19 @@ void gl_set_state(gl_state_e state, bool active) {
         case GL_STATE_DEPTH_TEST:
             if (active) {
                 GL_CALL(glEnable(GL_DEPTH_TEST));
-                GL_CALL(glDepthMask(GL_TRUE));
                 GL_CALL(glDepthFunc(GL_LESS));
-                GL_CALL(glClearDepth(1.0));
-                GL_CALL(glClear(GL_DEPTH_BUFFER_BIT));
             } else {
                 GL_CALL(glDisable(GL_DEPTH_TEST));
                 GL_CALL(glDepthFunc(GL_LESS));
-                GL_CALL(glDepthMask(GL_FALSE));
             }
             break;
+        case GL_STATE_DEPTH_WRITING:
+        	if (active){
+        		GL_CALL(glDepthMask(GL_TRUE));
+        	} else {
+        		GL_CALL(glDepthMask(GL_FALSE));
+        	}
+        	break;
         case GL_STATE_CULLING:
             if (active) {
                 GL_CALL(glEnable(GL_CULL_FACE));

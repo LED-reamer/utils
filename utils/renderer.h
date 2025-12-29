@@ -32,11 +32,14 @@ typedef struct {
 	vec3_t direction;
 	vec3_t up_vector;
 	float fov;
+	float sensitivity;
+	float yaw, pitch;
 	float z_near;
 	float z_far;
 } camera_t;
 
 camera_t renderer_get_default_camera();
+void renderer_update_fps_camera(camera_t* camera);
 
 void renderer_init(allocator_t* allocator, window_t* window, renderer_e renderer_flags);
 void renderer_deinit();
@@ -65,10 +68,11 @@ typedef struct {
 	color_t color;
 } vertex_3d_shapes_t;
 
-void renderer_draw_3d_shape_mesh(vertex_3d_shapes_t* vertices_ccw, size_t num_vertices);
+void renderer_draw_3d_shape_mesh(vertex_3d_shapes_t* vertices_ccw, size_t num_vertices, bool transparent);
 void renderer_draw_3d_triangle(vec3_t left, vec3_t top, vec3_t right, color_t color);
 void renderer_draw_3d_rectangle_points(vec3_t top_left, vec3_t top_right, vec3_t bottom_right, vec3_t bottom_left, color_t color);
 void renderer_draw_cylinder(vec3_t pos1, vec3_t pos2, float radius, color_t color);
+void renderer_draw_sphere(vec3_t pos, float radius, color_t color);
 
 // -=TEXT-RENDERER=-
 void renderer_set_font(font_t* font);

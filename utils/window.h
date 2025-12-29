@@ -77,6 +77,7 @@ bool mouse_button_just_released(window_t* window, mouse_button_e mouse_button);
 float mouse_get_scroll(window_t* window);
 vec2_t mouse_get_position(window_t* window);
 vec2_t mouse_get_relative_position(window_t* window);  // since last time calling window_input_update()
+void mouse_set_relative_mode(window_t* window, bool active);
 
 typedef enum mouse_system_cursor_e mouse_system_cursor_e;
 void mouse_set_system_cursor(mouse_system_cursor_e cursor);
