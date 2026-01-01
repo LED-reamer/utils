@@ -20,7 +20,7 @@ int main(){
 	memory_tracker_init(false);
 	window_t win = window_create_opengl("physics", 800, 600);
 	camera_t camera = renderer_get_default_camera();
-	mouse_set_relative_mode(&win, true);
+	//mouse_set_relative_mode(&win, true);
 	renderer_init(allocator_get_default(), &win, RENDERER_3D_SHAPES);
 	
 	// ---
@@ -28,14 +28,16 @@ int main(){
 	physics_object_t ball = physics_get_default_sphere(vec3(0, 0, 0), 0.5f, 1);
 	physics_object_t* obj = physics_object_add(&world, ball);
 	obj->is_static = true;
-	ball.center_of_mass.y = 0.9f;
+	ball.center_of_mass.y = 2.0f;
+	ball.center_of_mass.x = 0.3f;
 	physics_object_add(&world, ball);
 
 	while (window_open(&win)){
 		window_update(&win);
-		renderer_update_fps_camera(&camera);
+		renderer_render(vec2(window_get_size(&win).x, window_get_size(&win).y), color(1, 1, 1, 1), camera);
+		//renderer_update_fps_camera(&camera);
 		if (key_just_down(&win, KEY_ESCAPE)) window_close(&win);
-		if (key_just_down(&win, KEY_Q)) physics_object_add(&world, ball);
+		if (key_down(&win, KEY_Q)) physics_object_add(&world, ball);
 
 		update_camera_controller(&win, &camera);
 
@@ -47,17 +49,20 @@ int main(){
 			physics_object_t* obj = (physics_object_t*)obj_entry->value_ptr;
 			if(obj->collider_type == PHYSICS_SPHERE){
 				renderer_draw_sphere(obj->center_of_mass, obj->as.sphere.radius, color(1, 0, 0, 0.5f));
+				//draw rotation
+				renderer_draw_cylinder(obj->center_of_mass, 
+										vec3_add(obj->center_of_mass, vec3_scale(obj->velocity, 0.1f)),
+										0.05f, color(0, 0, 1, 1));
 			}
 		}
-		physics_world_step(&world, 1/60.0f/*dt later*/);
+		physics_world_step(&world, window_get_delta_time(&win));
+		LOG("fps = %.1Lf", 1.0/window_get_delta_time(&win));
 		size_t num_collisions;
 		physics_collision_t* collisions = physics_get_current_collisions(&world, &num_collisions);
 		for(size_t i = 0; i < num_collisions; i++){
 			renderer_draw_sphere(collisions[i].contact_point, 0.05f, color(0, 1, 0, 0.5f));
 		}
 		
-		
-		renderer_render(vec2(window_get_size(&win).x, window_get_size(&win).y), color(1, 1, 1, 1), camera);
 	}
 	
 	physics_object_remove(&world, obj);

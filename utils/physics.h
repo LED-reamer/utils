@@ -20,13 +20,18 @@ typedef struct{
 typedef struct physics_object_t physics_object_t;
 
 typedef struct physics_object_t{
+	vec3_t center_of_mass;
 	float mass;
 	vec3_t force;
-	vec3_t torque;
 	vec3_t velocity;
-	vec3_t center_of_mass;
-	//vec4_t quaternion;// xyz - axis, w - radians
+	
+	vec4_t rotation;//quaternion xyz - axis, w - radians
+	vec3_t inertia;
+	vec3_t torque;
+	vec3_t angular_velocity;
 	bool is_static;
+	bool is_sleeping;
+	float sleep_timer;//how long object had low energy before sleep
 	
 	collider_type_e collider_type;
 	union{
@@ -50,9 +55,18 @@ typedef struct{
 	vec3_t gravity;
 	size_t solver_iterations;
 	float linear_damping;
+	float angular_damping;
 	//default material properties //TODO add individual materials later
 	float restitution;
 	float friction;
+
+	float baumgarte_bias;
+	float allowed_penetration;
+	float velocity_threshold;
+
+	float sleep_linear_threshold;
+	float sleep_angular_threshold;
+	float sleep_time_required;
 }physics_world_t;
 
 physics_world_t physics_world_create(allocator_t* allocator);
@@ -73,17 +87,9 @@ typedef struct{
 	vec3_t contact_normal;	//a to b
 	float penetration;
 
-	float normal_mass;		// effective mass for normal constraint
-	float tangent_mass[2];	// effective mass for friction constraints
-	vec3_t tangent[2];		// friction direction vectors
-
+	//accumulated impulses for warm starting
 	float normal_impulse;
 	float tangent_impulse[2];
-	    
-	float position_bias;
-	
-	float restitution;
-	float friction;
 }physics_collision_t;
 
 physics_collision_t* physics_get_current_collisions(physics_world_t* physics_world, size_t* num_collisions);

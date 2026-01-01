@@ -17,6 +17,7 @@ int32_t num_keyboard_states = 0;
 float __mouse_x = 0, __mouse_y = 0, mouse_dx = 0, mouse_dy = 0, mouse_x_scroll = 0, mouse_y_scroll = 0;
 SDL_Cursor* current_cursor = NULL;
 SDL_WindowID window_to_close;
+long double __previous_time = 0;//for delta time
 
 // forward declaration
 void __window_input_update();
@@ -162,6 +163,10 @@ bool window_open(window_t* window) {
 void window_update(window_t* window) {
 	if (window_to_close == SDL_GetWindowID(window->SDL3_window)) return window_close(window);
 
+	long double now = window_get_time_s();
+	window->delta_time = now - window->previous_time;
+	window->previous_time = now;
+	
 	__window_input_update(window);
 }
 
@@ -253,6 +258,10 @@ void window_set_framebuffer(window_t* window, uint32_t* pixels_rgba, uint32_t w,
 	SDL_BlitSurface(src_surface, NULL, dest_surface, NULL);
 	SDL_UpdateWindowSurface(window->SDL3_window);
 	SDL_DestroySurface(src_surface);
+}
+
+long double window_get_delta_time(window_t* window){
+	return window->delta_time;
 }
 
 int64_t window_get_time_ns() {

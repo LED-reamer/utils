@@ -4,6 +4,7 @@
 #include "logging.h"
 
 //#define BACKEND_SDL_GPU
+#define DEBUG_NO_DEPTH_TEST
 
 #define MAX_BUFFER_VERTICES 1024 * 10  // for each renderer
 #define VERTEX_ARENA_BLOCK_SIZE 1024   // for each renderer
@@ -697,6 +698,10 @@ void renderer_update_fps_camera(camera_t* camera){
 	float offset_x = rel_mouse.x;
 	float offset_y = -rel_mouse.y;
 
+	#define TEMP_MAX_MOTION 100 //TODO remove
+	if(offset_x > TEMP_MAX_MOTION) offset_x = TEMP_MAX_MOTION;
+	if(offset_y > TEMP_MAX_MOTION) offset_y = TEMP_MAX_MOTION;
+
 	offset_x *= camera->sensitivity;
 	offset_y *= camera->sensitivity;
 
@@ -939,6 +944,10 @@ void renderer_render(vec2_t screen_size, color_t clear_color, camera_t camera) {
 			shader_uniform_mat4x4(renderer_3d_shapes.shader, "u_view", view);
 
 			gl_set_state(GL_STATE_DEPTH_TEST, true);
+
+			#ifdef DEBUG_NO_DEPTH_TEST
+			gl_set_state(GL_STATE_DEPTH_TEST, false);
+			#endif
 
 			mesh_set_data_vertices(&renderer_3d_shapes.mesh, renderer_3d_shapes.vertex_arena.data, (renderer_3d_shapes.vertex_arena.current_pos - renderer_3d_shapes.vertex_arena.data) / sizeof(vertex_3d_shapes_t));
 			mesh_draw(&renderer_3d_shapes.mesh, false, DRAW_MODE_TRIANGLES, false);

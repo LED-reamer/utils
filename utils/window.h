@@ -12,6 +12,9 @@ typedef struct {
 
 	bool dark_theme;
 
+	long double delta_time;
+	long double previous_time;
+
 	bool keyboard_state_previous[512];	//! should be same as SDL_SCANCODE_COUNT
 	uint32_t mouse_state_current;
 	uint32_t mouse_state_previous;
@@ -49,6 +52,7 @@ void window_set_icon(window_t* window, void* pixel_data, uint32_t width, uint32_
 
 void window_set_framebuffer(window_t* window, uint32_t* pixels_rgba, uint32_t w, uint32_t h);
 
+long double window_get_delta_time(window_t* window);
 int64_t window_get_time_ns();
 long double window_get_time_s();
 

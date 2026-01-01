@@ -35,6 +35,18 @@
 // vec3_rotate_around_axis(p, o, axis, r) 	- Rotate around axis & point (r in radians)
 // vec3_distance(a, b)        				- Distance between points
 
+// === VECTOR4 (vec4_t) ===
+// vec4(x, y, z, w)              			- Constructor
+// vec4_add(a, b)             				- Addition
+// vec4_sub(a, b)             				- Subtraction
+// vec4_mul(a, b)           				- component wise multiplication
+// vec4_scale(v, s)           				- Scalar multiplication
+// vec4_dot(a, b)             				- Dot product
+// vec4_length(v)             				- Length
+// vec4_length_squared(v)     				- Length squared (for comparisons)
+// vec4_normalize(v)          				- Normalization
+// vec4_rotate_vec3(v, x)          			- applies rotation described by quaternion v to x (quaternion: x,y,z -> rotation axis, w -> radians)
+
 // === MATRIX4x4 (mat4x4_t) === (column major => matrix[col][row])
 // mat4x4(x)                  							- Constructor (all values = x)
 // mat4x4_copy_array(a)                  				- Constructor copies float a[16]
@@ -371,6 +383,72 @@ static inline vec3_t vec3_rotate_around_axis(vec3_t point, vec3_t origin, vec3_t
 	vec3_t rotated = vec3_add(vec3_add(term1, term2), term3);
 
 	return vec3_add(rotated, origin);
+}
+
+static inline vec4_t vec4_add(vec4_t a, vec4_t b) {
+	return vec4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
+}
+
+static inline vec4_t vec4_sub(vec4_t a, vec4_t b) {
+	return vec4(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w);
+}
+
+static inline vec4_t vec4_mul(vec4_t a, vec4_t b){
+	vec4_t result;
+	result.x = a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y;
+	result.y = a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x;
+	result.z = a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w;
+	result.w = a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z;
+	return result;
+}
+
+static inline vec4_t vec4_scale(vec4_t v, float s) {
+	return vec4(v.x * s, v.y * s, v.z * s, v.w * s);
+}
+
+static inline float vec4_dot(vec4_t a, vec4_t b) {
+	return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+}
+
+// optimal for comparing lengths
+static inline float vec4_length_squared(vec4_t v) {
+	return vec4_dot(v, v);
+}
+
+static inline float vec4_length(vec4_t v) {
+	return sqrtf(vec4_length_squared(v));
+}
+
+static inline float vec4_distance(vec4_t a, vec4_t b) {
+	vec4_t diff = vec4_sub(a, b);
+	return vec4_length(diff);
+}
+
+static inline vec4_t vec4_normalize(vec4_t v) {
+	float len = vec4_length(v);
+	vec4_t normalized_vec = vec4(0, 0, 0, 0);
+	if (len > FLT_EPSILON) {
+		normalized_vec.x = v.x / len;
+		normalized_vec.y = v.y / len;
+		normalized_vec.z = v.z / len;
+		normalized_vec.w = v.w / len;
+	}
+	return normalized_vec;
+}
+
+static inline vec3_t vec4_rotate_vec3(vec4_t v, vec3_t x) {
+	// x' = v * x * v^-1 (quaternion rotation)
+	vec3_t u = vec3(v.x, v.y, v.z);
+	return vec3_add(
+				vec3_add(
+					vec3_scale(
+						x, 
+						v.w*v.w - vec3_dot(u, u)), 
+					vec3_scale(u, 2.0f * vec3_dot(u, x))), 
+				vec3_scale(
+					vec3_cross(u, x),
+					2.0f *v.w)
+			);
 }
 
 static inline mat4x4_t mat4x4_copy_array(float array[16]) {
