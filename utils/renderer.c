@@ -4,7 +4,7 @@
 #include "logging.h"
 
 //#define BACKEND_SDL_GPU
-//#define DEBUG_NO_DEPTH_TEST
+#define DEBUG_NO_DEPTH_TEST
 
 #define MAX_BUFFER_VERTICES 1024 * 10  // for each renderer
 #define VERTEX_ARENA_BLOCK_SIZE 1024   // for each renderer

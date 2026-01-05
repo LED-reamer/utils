@@ -39,7 +39,6 @@ int main(){
 	physics_object_add(&world, physics_get_default_plane(vec3(0, 0, 1), vec3(0, 0, -1)));//back wall
 
 	while (window_open(&win)){
-		renderer_draw_3d_rectangle_points(vec3(1, 0, 1), vec3(-1, 0, 1), vec3(-1, 0, -1), vec3(1, 0, -1), color(1, 0, 0, 1));
 		window_update(&win);
 		renderer_render(vec2(window_get_size(&win).x, window_get_size(&win).y), color(1, 1, 1, 1), camera);
 		//renderer_update_fps_camera(&camera);
@@ -59,21 +58,11 @@ int main(){
 			physics_object_t* obj = (physics_object_t*)obj_entry->value_ptr;
 			if(obj->collider_type == PHYSICS_SPHERE){
 				renderer_draw_sphere(obj->center_of_mass, obj->as.sphere.radius, (obj->is_sleeping) ? color(0, 1, 0, 1) : color(1, 0, 0, 1));
-				//renderer_draw_cylinder(obj->center_of_mass, 
-				//						vec3_add(obj->center_of_mass, vec3_scale(obj->velocity, 0.1f)),
-				//						0.01f, color(0, 0, 1, 1));
 			}
 		}
 		float slow_motion_factor = 1.0f;
 		if(key_down(&win, KEY_F)) slow_motion_factor = 0.1f;
 		physics_world_step(&world, window_get_delta_time(&win) * slow_motion_factor);
-		//LOG("fps = %.1Lf", 1.0/window_get_delta_time(&win));
-		/*size_t num_collisions;
-		physics_collision_t* collisions = physics_get_current_collisions(&world, &num_collisions);
-		for(size_t i = 0; i < num_collisions; i++){
-			renderer_draw_sphere(collisions[i].contact_point, 0.05f, color(0, 1, 0, 0.5f));
-		}*/
-		
 	}
 	physics_world_destroy(&world);
 	// ---
