@@ -4,13 +4,13 @@
 #include "logging.h"
 
 //#define BACKEND_SDL_GPU
-#define DEBUG_NO_DEPTH_TEST
+//#define DEBUG_NO_DEPTH_TEST
 
 #define MAX_BUFFER_VERTICES 1024 * 10  // for each renderer
 #define VERTEX_ARENA_BLOCK_SIZE 1024   // for each renderer
 #define CIRCLE_SEGMENTS (25)
 #define SPHERE_STACKS 8
-#define SPHERE_SLICES 16
+#define SPHERE_SLICES 16 /*SPHERE_STACKS * 2 */
 
 typedef struct {
 	vec2_t position;
@@ -623,7 +623,7 @@ const char* gl_shapes3d_frag = "#version 330\n"
 "out vec4 FragColor;\n"
 "void main()\n"
 "{\n"
-"   FragColor = v_color + vec4(vec3(v_color) + dot(v_normal, vec3(0, -1, -0.05))/1.5, 0);\n"
+"   FragColor = v_color + vec4(vec3(v_color) + dot(v_normal, vec3(0, -1, -0.05))/2.5, 0);\n"
 "}\n";
 const char* gl_text_vert = "#version 330\n"
 "layout (location = 0) in vec2 a_pos;\n"

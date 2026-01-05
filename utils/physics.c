@@ -33,8 +33,18 @@ physics_object_t physics_get_default_box(vec3_t pos, vec3_t size/*half extents*/
 	};
 }
 
+physics_object_t physics_get_default_plane(vec3_t pos, vec3_t normal){
+	return (physics_object_t){
+		.center_of_mass = pos,
+		.mass = FLT_MAX,
+		.collider_type = PHYSICS_PLANE,
+		.as.plane = (plane_collider_t){.normal = normal},
+		.is_static = true,
+	};
+}
+
 physics_world_t physics_world_create(allocator_t* allocator){
-	/*return (physics_world_t) {
+	return (physics_world_t) {
 		.allocator = allocator,
 		.objects = hashmap_create(allocator),
 		.collisions_arena = arena_create(allocator, 4096, 0),
@@ -48,10 +58,9 @@ physics_world_t physics_world_create(allocator_t* allocator){
 		.baumgarte_bias = 0.2f,
 		.allowed_penetration = 0.01f,
 		.velocity_threshold = 1.0f,
-		.sleep_linear_threshold = 0.01f,
-		.sleep_angular_threshold = 0.01f,
+		.low_energy_threshold = 0.01f,
 		.sleep_time_required = 0.5f,
-	};*/
+	};/*
 	return (physics_world_t) {
 		.allocator = allocator,
 		.objects = hashmap_create(allocator),
@@ -66,10 +75,11 @@ physics_world_t physics_world_create(allocator_t* allocator){
 		.baumgarte_bias = 0.3f,
 		.allowed_penetration = 0.01f,
 		.velocity_threshold = 0.2f,
-		.sleep_linear_threshold = 0.01f,
-		.sleep_angular_threshold = 0.01f,
+		//.sleep_linear_threshold = 0.01f,
+		//.sleep_angular_threshold = 0.01f,
+		.low_energy_threshold = 0.01f,
 		.sleep_time_required = 0.05f,
-	};
+	};*/
 }
 
 void physics_world_destroy(physics_world_t* physics_world){
@@ -126,7 +136,6 @@ void physics_world_step(physics_world_t* physics_world, float dt){
 	if (dt <= PHYSICS_EPSILON) return; //TODO check if this is needed
 	arena_reset(&physics_world->collisions_arena);
 	physics_world->num_collisions = 0;
-
 	apply_gravity_and_integrate_velocities(physics_world, dt);
 	collision_detection(physics_world);
 	for(size_t i = 0; i < physics_world->solver_iterations; i++){
@@ -168,15 +177,23 @@ void apply_gravity_and_integrate_velocities(physics_world_t* physics_world, floa
 }
 
 size_t collision_sphere_sphere(physics_object_t* a, physics_object_t* b, arena_t* collisions_arena);
+size_t collision_sphere_plane(physics_object_t* sphere, physics_object_t* plane, arena_t* collisions_arena);
 void collision_detection(physics_world_t* physics_world){
 	hashmap_foreach(&physics_world->objects, obj_a_entry){
 		physics_object_t* obj_a = (physics_object_t*)obj_a_entry->value_ptr;
 		hashmap_foreach(&physics_world->objects, obj_b_entry){
 			physics_object_t* obj_b = (physics_object_t*)obj_b_entry->value_ptr;
 			if(obj_a == obj_b) continue; //prevent self collisions
+			if(obj_a->is_static && obj_b->is_static) continue;// TODO figure out if we want this
+			if(obj_a->is_sleeping && obj_b->is_sleeping) continue;// TODO figure out if we want this
+			if((obj_a->is_static && obj_b->is_sleeping) || (obj_a->is_sleeping && obj_b->is_static)) continue;// TODO figure out if we want this
 
 			if(obj_a->collider_type == PHYSICS_SPHERE && obj_b->collider_type == PHYSICS_SPHERE)
 				physics_world->num_collisions += collision_sphere_sphere(obj_a, obj_b, &physics_world->collisions_arena);
+			else if(obj_a->collider_type == PHYSICS_SPHERE && obj_b->collider_type == PHYSICS_PLANE)
+				physics_world->num_collisions += collision_sphere_plane(obj_a, obj_b, &physics_world->collisions_arena);
+			else if(obj_a->collider_type == PHYSICS_PLANE && obj_b->collider_type == PHYSICS_SPHERE)
+				physics_world->num_collisions += collision_sphere_plane(obj_b, obj_a, &physics_world->collisions_arena);
 			else
 				ERROR("collision case not implemented!");
 		}
@@ -203,8 +220,13 @@ vec3_t object_get_velocity_at_point(physics_object_t* obj, vec3_t point){
 	return vec3_add(obj->velocity, angular_component);
 }
 
-void object_apply_impulse(physics_object_t* obj, vec3_t linear_impulse, vec3_t angular_impulse){
+void object_apply_constraint_impulse(physics_world_t* physics_world, physics_object_t* obj, vec3_t linear_impulse, vec3_t angular_impulse){
+	float total_impulse = vec3_length(linear_impulse) + vec3_length(angular_impulse);
+	float kin_energy = (total_impulse*total_impulse) / (2.0f*obj->mass);
+	if(kin_energy < physics_world->low_energy_threshold) return;
+
 	wake_up_object(obj);
+
 	obj->velocity = vec3_add(obj->velocity, vec3_scale(linear_impulse, object_get_inverse_mass(obj)));
 
 	vec3_t local_angular_impulse = vec4_rotate_vec3(vec4(-obj->rotation.x, -obj->rotation.y, -obj->rotation.z, obj->rotation.w), angular_impulse);
@@ -219,6 +241,7 @@ void object_apply_impulse(physics_object_t* obj, vec3_t linear_impulse, vec3_t a
 }
 
 void solve_constraints(physics_world_t* physics_world, float dt){
+	LOG("num collisions %zu", physics_world->num_collisions);
 	for(size_t i = 0; i < physics_world->num_collisions; i++){
 		physics_collision_t* col = &((physics_collision_t*)physics_world->collisions_arena.data)[i];
 
@@ -244,8 +267,8 @@ void solve_constraints(physics_world_t* physics_world, float dt){
 		jn = col->normal_impulse - old_normal_impulse;
 
 		vec3_t normal_impulse = vec3_scale(col->contact_normal, jn);
-		object_apply_impulse(col->a, vec3_scale(normal_impulse, -1.0f), vec3_cross(r_a, vec3_scale(normal_impulse, -1.0f)));
-		object_apply_impulse(col->b, normal_impulse, vec3_cross(r_b, normal_impulse));
+		object_apply_constraint_impulse(physics_world, col->a, vec3_scale(normal_impulse, -1.0f), vec3_cross(r_a, vec3_scale(normal_impulse, -1.0f)));
+		object_apply_constraint_impulse(physics_world, col->b, normal_impulse, vec3_cross(r_b, normal_impulse));
 
 		vec3_t tangent[2];
 		if (fabs(col->contact_normal.x) >= 0.57735f)// 1/sqrt(3)
@@ -275,8 +298,8 @@ void solve_constraints(physics_world_t* physics_world, float dt){
 			jt = col->tangent_impulse[j] - old_tangent_impulse;
 			
 			vec3_t tangent_impulse = vec3_scale(tangent[j], jt);
-			object_apply_impulse(col->a, vec3_scale(tangent_impulse, -1.0f), vec3_cross(r_a, vec3_scale(tangent_impulse, -1.0f)));
-			object_apply_impulse(col->b, tangent_impulse, vec3_cross(r_b, tangent_impulse));
+			object_apply_constraint_impulse(physics_world, col->a, vec3_scale(tangent_impulse, -1.0f), vec3_cross(r_a, vec3_scale(tangent_impulse, -1.0f)));
+			object_apply_constraint_impulse(physics_world, col->b, tangent_impulse, vec3_cross(r_b, tangent_impulse));
 		}
 	}
 }
@@ -306,8 +329,9 @@ void update_sleep_state(physics_world_t* physics_world, float dt){
 	hashmap_foreach(&physics_world->objects, obj_entry){
 		physics_object_t* obj = (physics_object_t*)obj_entry->value_ptr;
 		if(obj->is_static) continue;
-		bool low_energy = (vec3_length(obj->velocity) < physics_world->sleep_linear_threshold && vec3_length(obj->angular_velocity) < physics_world->sleep_angular_threshold);
-		if(low_energy){
+		//bool low_energy = (vec3_length(obj->velocity) < physics_world->sleep_linear_threshold && vec3_length(obj->angular_velocity) < physics_world->sleep_angular_threshold);
+		float kin_energy = 0.5f * obj->mass * (vec3_length(obj->velocity) * vec3_length(obj->velocity));
+		if(kin_energy < physics_world->low_energy_threshold){
 			obj->sleep_timer += dt;
 			if(obj->sleep_timer >= physics_world->sleep_time_required && !obj->is_sleeping){
 				obj->is_sleeping = true;
@@ -343,6 +367,27 @@ size_t collision_sphere_sphere(physics_object_t* a, physics_object_t* b, arena_t
 			collision->contact_normal = vec3(1, 0, 0);//this could be set to random, but this case will never occur since tresholds
 		collision->contact_point = vec3_add(a->center_of_mass, vec3_scale(collision->contact_normal, a->as.sphere.radius));
 		collision->penetration = combined_radius - distance;
+
+		//must be init with zero
+		collision->normal_impulse = 0;
+		collision->tangent_impulse[0] = 0;
+		collision->tangent_impulse[1] = 0;
+		return 1; //1 collision
+	}
+	return 0;
+}
+
+size_t collision_sphere_plane(physics_object_t* sphere, physics_object_t* plane, arena_t* collisions_arena){
+	vec3_t normal = vec3_negate(plane->as.plane.normal);
+	float distance = fabs(vec3_distance_to_plane(sphere->center_of_mass, plane->center_of_mass, plane->as.plane.normal));
+	if(distance < sphere->as.sphere.radius){
+		//collision
+		physics_collision_t* collision = arena_allocate(collisions_arena, sizeof(physics_collision_t));
+		collision->a = sphere;
+		collision->b = plane;
+		collision->contact_normal = normal;
+		collision->contact_point = vec3_add(sphere->center_of_mass, vec3_scale(collision->contact_normal, sphere->as.sphere.radius));
+		collision->penetration = sphere->as.sphere.radius - distance;
 
 		//must be init with zero
 		collision->normal_impulse = 0;

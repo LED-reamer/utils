@@ -1,6 +1,0 @@
-# important
-
-window input updating -> currently timed update (no good fix)
-
-	-> every window has it's own key buffer(own input update)
-	-> this way key_just_downs work seperately and timed update can be removed

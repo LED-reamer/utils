@@ -1,5 +1,6 @@
 gcc \
 main.c \
+../../utils/random.c \
 ../../utils/physics.c \
 ../../utils/renderer.c \
 ../../utils/opengl.c \

@@ -7,6 +7,7 @@
 typedef enum{
 	PHYSICS_SPHERE,
 	PHYSICS_BOX,
+	PHYSICS_PLANE,/*always static*/
 }collider_type_e;
 
 typedef struct{
@@ -16,6 +17,10 @@ typedef struct{
 typedef struct{
 	vec3_t size; // half extents
 }box_collider_t;
+
+typedef struct{
+	vec3_t normal;
+}plane_collider_t;
 
 typedef struct physics_object_t physics_object_t;
 
@@ -37,6 +42,7 @@ typedef struct physics_object_t{
 	union{
 		sphere_collider_t sphere;
 		box_collider_t box;
+		plane_collider_t plane;
 	}as;
 
 	//physics_object_t* parent;
@@ -44,6 +50,7 @@ typedef struct physics_object_t{
 
 physics_object_t physics_get_default_sphere(vec3_t pos, float radius, float mass);
 physics_object_t physics_get_default_box(vec3_t pos, vec3_t size/*half extents*/, float mass);
+physics_object_t physics_get_default_plane(vec3_t pos, vec3_t normal);
 
 typedef struct{
 	allocator_t* allocator;
@@ -64,8 +71,9 @@ typedef struct{
 	float allowed_penetration;
 	float velocity_threshold;
 
-	float sleep_linear_threshold;
-	float sleep_angular_threshold;
+	//float sleep_linear_threshold;
+	//float sleep_angular_threshold;
+	float low_energy_threshold;
 	float sleep_time_required;
 }physics_world_t;
 

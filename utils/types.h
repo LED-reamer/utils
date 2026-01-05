@@ -34,6 +34,7 @@
 // vec3_normalize(v)          				- Normalization
 // vec3_rotate_around_axis(p, o, axis, r) 	- Rotate around axis & point (r in radians)
 // vec3_distance(a, b)        				- Distance between points
+// vec3_distance_to_plane(x, point, normal) - Distance from x to plane with point and normal. positive in front, negative behind
 
 // === VECTOR4 (vec4_t) ===
 // vec4(x, y, z, w)              			- Constructor
@@ -353,8 +354,11 @@ static inline float vec3_length(vec3_t v) {
 }
 
 static inline float vec3_distance(vec3_t a, vec3_t b) {
-	vec3_t diff = vec3_sub(a, b);
-	return vec3_length(diff);
+	return vec3_length(vec3_sub(a, b));
+}
+
+static inline float vec3_distance_to_plane(vec3_t x, vec3_t point, vec3_t normal){
+	return vec3_dot(vec3_sub(x, point), normal);// TODO this is just a guess ! very dangerous !
 }
 
 static inline vec3_t vec3_normalize(vec3_t v) {

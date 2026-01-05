@@ -3,7 +3,7 @@
 
 int main(void) {
 	debugger_init();
-	window_t window = window_create("main application", 1920, 1080);
+	window_t window = window_create("main application", 1920/2, 1080/2);
 
 	size_t current_size = 1, next_size = 1;
 	void* data = malloc(current_size);
