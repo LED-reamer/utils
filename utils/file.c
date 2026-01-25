@@ -1,4 +1,24 @@
 #include "file.h"
+#include <stdlib.h>
+#include <unistd.h>
+
+path_t path_get_working_directory(){
+	path_t new_path = {0};
+	getcwd(new_path.name, PATH_MAX);
+	return new_path;
+}
+
+
+path_t path_get_absolute(const char* path){
+	path_t new_path = {0};
+	realpath(path, new_path.name);
+	return new_path;
+}
+
+bool path_move(const char* path, const char* new_path){
+	if(rename(path, new_path) != 0) return false;
+	return true;
+}
 
 file_t file_create(const char* filename){
 	file_t file = {0};

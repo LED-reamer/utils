@@ -1,8 +1,16 @@
 #pragma once
 #include <stdio.h>
 #include <stdbool.h>
+#include <limits.h>
 
-//man 3 realpath
+
+typedef struct{
+	char name[PATH_MAX];
+}path_t;
+
+path_t path_get_working_directory();
+path_t path_get_absolute(const char* path);//resolves ../ etc
+bool path_move(const char* path, const char* new_path);
 
 typedef struct{
 	FILE* ptr;
