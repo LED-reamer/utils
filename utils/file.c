@@ -46,15 +46,20 @@ void file_remove(const char* filename){
 }
 
 bool file_write(file_t* file, void* data, size_t size){
-	size_t bytes_written = fwrite(data, size, 1, file->ptr);
+	size_t bytes_written = fwrite(data, 1, size, file->ptr);
 	if(bytes_written != size) return false;
 	return true;
 }
 
-bool file_read(file_t* file, void* data, size_t size){
-	size_t bytes_read = fread(data, size, 1, file->ptr);
-	if(bytes_read != size) return false;
-	return true;
+size_t file_read(file_t* file, void* data, size_t size){
+	return fread(data, 1, size, file->ptr);
+}
+
+size_t file_read_no_advance(file_t* file, void* data, size_t size){
+	size_t old_pos = file_get_position(file);
+	size_t bytes_read = fread(data, 1, size, file->ptr);
+	file_set_position(file, old_pos);
+	return bytes_read;
 }
 
 size_t file_get_position(file_t* file){
