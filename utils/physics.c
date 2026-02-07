@@ -47,7 +47,7 @@ physics_world_t physics_world_create(allocator_t* allocator){
 	return (physics_world_t) {
 		.allocator = allocator,
 		.objects = hashmap_create(allocator),
-		.collisions_arena = arena_create(allocator, 4096, 0),
+		.collisions_arena = arena_create(allocator, 4096, ARENA_LINEAR),
 		.num_collisions = 0,
 		.gravity = vec3(0, -9.81f, 0),
 		.solver_iterations = 8,
@@ -64,7 +64,7 @@ physics_world_t physics_world_create(allocator_t* allocator){
 	return (physics_world_t) {
 		.allocator = allocator,
 		.objects = hashmap_create(allocator),
-		.collisions_arena = arena_create(allocator, 4096, 0),
+		.collisions_arena = arena_create(allocator, 4096, ARENA_LINEAR),
 		.num_collisions = 0,
 		.gravity = vec3(0, -9.81f, 0),
 		.solver_iterations = 8,

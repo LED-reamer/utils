@@ -1,53 +1,20 @@
 #include "arena.h"
-
-#include <string.h>
-
 #include "logging.h"
 
-arena_t arena_create(allocator_t* allocator, size_t chunk_size, size_t num_start_chunks) {
+#include <string.h>
+#include <stdbool.h>
+#include <stdint.h>
+
+arena_t arena_create(allocator_t* allocator, size_t block_size, arena_scaling_e scaling) {
+	if(block_size == 0) block_size = 1;
 	arena_t arena = (arena_t){
 		.allocator = allocator,
-		.chunk_size = chunk_size,
-		.num_start_chunks = num_start_chunks,
-		.num_chunks = num_start_chunks,
-		.current_pos = (void*)arena.data,
+		.block_size = block_size,
+		.scaling = scaling,
+		.size = 0,
+		.position = 0,
 	};
-	if(chunk_size * num_start_chunks > 0){
-		arena.data = allocator->acalloc(1, chunk_size * num_start_chunks);
-		arena.current_pos = (void*)arena.data;
-	}
 	return arena;
-}
-
-void* arena_allocate(arena_t* arena, size_t size) {
-	if ((arena->current_pos + size) > (arena->data + (arena->num_chunks * arena->chunk_size))) {
-		arena->num_chunks += (size_t)((size / arena->chunk_size) + 1);
-
-		size_t new_size = arena->num_chunks * arena->chunk_size;
-		void* new_data = arena->allocator->arealloc(arena->data, new_size);
-
-		if (!new_data) {
-			ERROR("Could not allocate extra arena memory");
-			return NULL;
-		}
-
-		arena->current_pos = new_data + (arena->current_pos - arena->data);
-		arena->data = new_data;
-	}
-
-	void* ptr = arena->current_pos;
-	arena->current_pos += size;
-	memset(ptr, 0, size);
-	return ptr;
-}
-
-void arena_reset(arena_t* arena) {
-	if (arena->num_chunks != arena->num_start_chunks) {
-		arena->num_chunks = arena->num_start_chunks;
-		arena->data = arena->allocator->arealloc(arena->data, arena->num_chunks * arena->chunk_size);
-	}
-
-	arena->current_pos = arena->data;
 }
 
 void arena_destroy(arena_t* arena) {
@@ -56,6 +23,68 @@ void arena_destroy(arena_t* arena) {
 	*arena = (arena_t){0};
 }
 
+bool __arena_check_size(arena_t* arena, size_t new_size){
+	if (new_size > arena->size) /*needs resizing*/ {
+		size_t new_allocation_size = 0;
+		switch(arena->scaling){
+			case ARENA_FIXED: return false; break;//could not allocate more
+			case ARENA_LINEAR:
+				size_t needed_blocks = (new_size + arena->block_size - 1) / arena->block_size;
+				if (needed_blocks > SIZE_MAX / arena->block_size)
+				    return false;
+				new_allocation_size = needed_blocks * arena->block_size;
+				break;
+			case ARENA_QUADRATIC:
+				new_allocation_size = arena->size;
+				if (new_allocation_size == 0)
+				    new_allocation_size = arena->block_size;
+				
+				while (new_allocation_size < new_size) {
+				    if (new_allocation_size > SIZE_MAX / 2) return false;
+				    new_allocation_size *= 2;
+				}
+				break;
+			default: return false; break;
+		}
+
+		void* new_data = arena->allocator->arealloc(arena->data, new_allocation_size);
+		if (!new_data) return false;
+		if (new_allocation_size > arena->size)
+			memset(new_data + arena->size, 0, new_allocation_size - arena->size);
+		arena->data = new_data;
+		arena->size = new_allocation_size;
+	}
+
+	return true;
+}
+
+void* arena_allocate(arena_t* arena, size_t size) {
+	if(!__arena_check_size(arena, arena->position + size)) return NULL;//allocation failed
+
+	void* ptr = arena->data + arena->position;
+	arena->position += size;
+	return ptr;
+}
+
+size_t arena_allocate_index(arena_t* arena, size_t size){
+	if(!__arena_check_size(arena, arena->position + size)){
+		ERROR("arena_allocate_index could not allocate %zu bytes", size);
+		return 0;
+	}
+	
+	size_t index_position = arena->position;
+	arena->position += size;
+	return index_position;
+}
+
+void arena_set_position(arena_t* arena, size_t new_position){
+	if(new_position < arena->size) arena->position = new_position;
+}
+
+void arena_reset(arena_t* arena) {
+	arena_set_position(arena, 0);
+}
+
 size_t arena_allocated(arena_t* arena){
-	return arena->current_pos - arena->data;
+	return arena->position;
 }

@@ -10,7 +10,7 @@
 linked_list_t linked_list_create(allocator_t* allocator) {
 	linked_list_t linked_list = (linked_list_t){
 		.allocator = allocator,
-		.arena = arena_create(allocator, LINKED_LIST_CHUNK_SIZE, 0),
+		.arena = arena_create(allocator, LINKED_LIST_CHUNK_SIZE, ARENA_LINEAR),
 		.first = NULL,
 		.last = NULL,
 	};

@@ -5,7 +5,7 @@ int main(void) {
 	memory_tracker_init(false);
 	// second argument defines the chunk size
 	// third argument how many chunks are allocated from the start
-	arena_t my_arena = arena_create(allocator_get_default(), 1024 * 1024, 0);
+	arena_t my_arena = arena_create(allocator_get_default(), 4096, ARENA_QUADRATIC);
 
 	// allocate as much as you like
 	void* data = arena_allocate(&my_arena, 5000);

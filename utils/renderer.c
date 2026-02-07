@@ -695,8 +695,8 @@ camera_t renderer_get_default_camera() {
 void renderer_update_fps_camera(camera_t* camera){
 	vec2_t rel_mouse = mouse_get_relative_position(ctx.window);
 
-	float offset_x = rel_mouse.x;
-	float offset_y = -rel_mouse.y;
+	float offset_x = -rel_mouse.x;
+	float offset_y = rel_mouse.y;
 
 	#define TEMP_MAX_MOTION 100 //TODO remove
 	if(offset_x > TEMP_MAX_MOTION) offset_x = TEMP_MAX_MOTION;
@@ -734,14 +734,14 @@ void renderer_init(allocator_t* allocator, window_t* window, renderer_e renderer
 		renderer_2d_shapes.shader = shader_create(&ctx, (uint8_t*)shapes2d_vert, 1304, 0, 0, 0, 1, (uint8_t*)shapes2d_frag, 376, 0, 0, 0, 0);
 		renderer_2d_shapes.mesh = mesh_create(&ctx, sizeof(vertex_2d_shapes_t), MAX_BUFFER_VERTICES, 0, 0);
 		renderer_2d_shapes.pipeline = pipeline_create(&ctx, &renderer_2d_shapes.shader, sizeof(vertex_2d_shapes_t), (attribute_e[]){ATTRIBUTE_FLOAT2, ATTRIBUTE_FLOAT4}, 2);
-		renderer_2d_shapes.vertex_arena = arena_create(renderer_2d_shapes.allocator, VERTEX_ARENA_BLOCK_SIZE, 0);
+		renderer_2d_shapes.vertex_arena = arena_create(renderer_2d_shapes.allocator, VERTEX_ARENA_BLOCK_SIZE, ARENA_LINEAR);
 	}
 	if (renderer_flags & RENDERER_3D_SHAPES) {
 		renderer_3d_shapes.allocator = allocator;
 		renderer_3d_shapes.shader = shader_create(&ctx, (uint8_t*)shapes3d_vert, 1636, 0, 0, 0, 1, (uint8_t*)shapes3d_frag, 876, 0, 0, 0, 0);
 		renderer_3d_shapes.mesh = mesh_create(&ctx, sizeof(vertex_3d_shapes_t), MAX_BUFFER_VERTICES, 0, 0);
 		renderer_3d_shapes.pipeline = pipeline_create(&ctx, &renderer_3d_shapes.shader, sizeof(vertex_3d_shapes_t), (attribute_e[]){ATTRIBUTE_FLOAT3, ATTRIBUTE_FLOAT3, ATTRIBUTE_FLOAT4}, 3);
-		renderer_3d_shapes.vertex_arena = arena_create(renderer_3d_shapes.allocator, VERTEX_ARENA_BLOCK_SIZE, 0);
+		renderer_3d_shapes.vertex_arena = arena_create(renderer_3d_shapes.allocator, VERTEX_ARENA_BLOCK_SIZE, ARENA_LINEAR);
 	}
 	if (renderer_flags & RENDERER_TEXTURES) {
 		renderer_textures.allocator = allocator;
@@ -752,7 +752,7 @@ void renderer_init(allocator_t* allocator, window_t* window, renderer_e renderer
 		renderer_text.shader = shader_create(&ctx, (uint8_t*)text_vert, 1448, 0, 0, 0, 1, (uint8_t*)text_frag, 1552, 1, 0, 0, 1);
 		renderer_text.mesh = mesh_create(&ctx, sizeof(vertex_text_t), MAX_BUFFER_VERTICES, 0, 0);
 		renderer_text.pipeline = pipeline_create(&ctx, &renderer_text.shader, sizeof(vertex_text_t), (attribute_e[]){ATTRIBUTE_FLOAT2, ATTRIBUTE_FLOAT2, ATTRIBUTE_FLOAT4}, 3);
-		renderer_text.vertex_arena = arena_create(renderer_text.allocator, VERTEX_ARENA_BLOCK_SIZE, 0);
+		renderer_text.vertex_arena = arena_create(renderer_text.allocator, VERTEX_ARENA_BLOCK_SIZE, ARENA_LINEAR);
 	}
 
 	initialised_renderers |= renderer_flags;
@@ -794,7 +794,7 @@ void renderer_render(vec2_t screen_size, color_t clear_color, camera_t camera) {
 		gpu_begin(&ctx, NULL, clear_color);
 	
 	if (initialised_renderers & RENDERER_3D_SHAPES) {
-		if (renderer_3d_shapes.vertex_arena.data != NULL && renderer_3d_shapes.vertex_arena.current_pos != renderer_3d_shapes.vertex_arena.data) {
+		if (renderer_3d_shapes.vertex_arena.data != NULL && arena_allocated(&renderer_3d_shapes.vertex_arena) != 0) {
 			mat4x4_t projection = mat4x4_perspective(deg2rad(camera.fov), (float)screen_size.x / (float)screen_size.y, camera.z_near, camera.z_far);
 			mat4x4_t view = mat4x4_lookat(camera.position, vec3_add(camera.position, camera.direction), camera.up_vector);
 			//mat4x4_t view = mat4x4_lookat(camera.position, vec3(0, 0, 0), camera.up_vector);
@@ -802,44 +802,38 @@ void renderer_render(vec2_t screen_size, color_t clear_color, camera_t camera) {
 			memcpy(ub, projection.m16, sizeof(float) * 16);
 			memcpy(ub + 16, view.m16, sizeof(float) * 16);
 
-			if (renderer_3d_shapes.vertex_arena.current_pos != renderer_3d_shapes.vertex_arena.data)
-				mesh_upload(&renderer_3d_shapes.mesh, renderer_3d_shapes.vertex_arena.data, (renderer_3d_shapes.vertex_arena.current_pos - renderer_3d_shapes.vertex_arena.data) / sizeof(vertex_3d_shapes_t), NULL, 0);
+			mesh_upload(&renderer_3d_shapes.mesh, renderer_3d_shapes.vertex_arena.data, arena_allocated(&renderer_3d_shapes.vertex_arena) / sizeof(vertex_3d_shapes_t), NULL, 0);
 			gpu_vertex_uniform(&ctx, 0, ub, sizeof(float) * 32);
-			if (renderer_3d_shapes.vertex_arena.current_pos != renderer_3d_shapes.vertex_arena.data)
-				gpu_draw(&ctx, &renderer_3d_shapes.pipeline, &renderer_3d_shapes.mesh, 0, (renderer_3d_shapes.vertex_arena.current_pos - renderer_3d_shapes.vertex_arena.data) / sizeof(vertex_3d_shapes_t));
+			gpu_draw(&ctx, &renderer_3d_shapes.pipeline, &renderer_3d_shapes.mesh, 0, arena_allocated(&renderer_3d_shapes.vertex_arena) / sizeof(vertex_3d_shapes_t));
 			arena_reset(&renderer_3d_shapes.vertex_arena);
 		}
 	}
 
 	if (initialised_renderers & RENDERER_2D_SHAPES) {
-		if (renderer_2d_shapes.vertex_arena.data != NULL) {
+		if (renderer_2d_shapes.vertex_arena.data != NULL && arena_allocated(&renderer_2d_shapes.vertex_arena) != 0) {
 			mat4x4_t projection = mat4x4_ortho(0.0f, (float)screen_size.x, (float)screen_size.y, 0.0f, -1, 1);
-			if (renderer_2d_shapes.vertex_arena.current_pos != renderer_2d_shapes.vertex_arena.data)
-				mesh_upload(&renderer_2d_shapes.mesh, renderer_2d_shapes.vertex_arena.data, (renderer_2d_shapes.vertex_arena.current_pos - renderer_2d_shapes.vertex_arena.data) / sizeof(vertex_2d_shapes_t), NULL, 0);
+			mesh_upload(&renderer_2d_shapes.mesh, renderer_2d_shapes.vertex_arena.data, arena_allocated(&renderer_2d_shapes.vertex_arena) / sizeof(vertex_2d_shapes_t), NULL, 0);
 			gpu_vertex_uniform(&ctx, 0, projection.m16, sizeof(mat4x4_t));
-			if (renderer_2d_shapes.vertex_arena.current_pos != renderer_2d_shapes.vertex_arena.data)
-				gpu_draw(&ctx, &renderer_2d_shapes.pipeline, &renderer_2d_shapes.mesh, 0, (renderer_2d_shapes.vertex_arena.current_pos - renderer_2d_shapes.vertex_arena.data) / sizeof(vertex_2d_shapes_t));
+			gpu_draw(&ctx, &renderer_2d_shapes.pipeline, &renderer_2d_shapes.mesh, 0, arena_allocated(&renderer_2d_shapes.vertex_arena) / sizeof(vertex_2d_shapes_t));
 			arena_reset(&renderer_2d_shapes.vertex_arena);
 		}
 	}
 	
 	if (initialised_renderers & RENDERER_TEXTURES) {
-		if (renderer_textures.vertex_arena.data != NULL && renderer_textures.vertex_arena.current_pos != renderer_textures.vertex_arena.data) {
+		if (renderer_textures.vertex_arena.data != NULL && arena_allocated(&renderer_textures.vertex_arena)) {
 			WARNING("texture rendering not implemented yet!");
 		}
 	}
 
 	if (initialised_renderers & RENDERER_TEXT) {
-			if (renderer_text.vertex_arena.data != NULL && current_font != NULL) {
+			if ((renderer_text.vertex_arena.data != NULL && current_font != NULL) && arena_allocated(&renderer_text.vertex_arena) != 0) {
 				mat4x4_t projection = mat4x4_ortho(0.0f, (float)screen_size.x, (float)screen_size.y, 0.0f, -1, 1);
-				if (renderer_text.vertex_arena.current_pos != renderer_text.vertex_arena.data)
-					mesh_upload(&renderer_text.mesh, renderer_text.vertex_arena.data, (renderer_text.vertex_arena.current_pos - renderer_text.vertex_arena.data) / sizeof(vertex_text_t), NULL, 0);
+				mesh_upload(&renderer_text.mesh, renderer_text.vertex_arena.data, (renderer_text.vertex_arena.current_pos - renderer_text.vertex_arena.data) / sizeof(vertex_text_t), NULL, 0);
 				gpu_vertex_uniform(&ctx, 0, projection.m16, sizeof(mat4x4_t));
 				float text_uniform[2] = {current_font->sdf_smoothing, current_font->sdf_thickness};
 				gpu_fragment_uniform(&ctx, 0, text_uniform, sizeof(float)*2);
 				gpu_fragment_samplers(&ctx, (texture_t[]){current_font_texture}, 1);
-				if (renderer_text.vertex_arena.current_pos != renderer_text.vertex_arena.data)
-					gpu_draw(&ctx, &renderer_text.pipeline, &renderer_text.mesh, 0, (renderer_text.vertex_arena.current_pos - renderer_text.vertex_arena.data) / sizeof(vertex_text_t));
+				gpu_draw(&ctx, &renderer_text.pipeline, &renderer_text.mesh, 0, (renderer_text.vertex_arena.current_pos - renderer_text.vertex_arena.data) / sizeof(vertex_text_t));
 				arena_reset(&renderer_text.vertex_arena);
 			}
 		}
@@ -868,15 +862,15 @@ void renderer_init(allocator_t* allocator, window_t* window, renderer_e renderer
 		renderer_2d_shapes.shader = shader_create(ctx.allocator, gl_shapes2d_vert, gl_shapes2d_frag, NULL, NULL, NULL, NULL);
 		renderer_2d_shapes.mesh = mesh_create(ctx.allocator);
 		mesh_set_attributes(&renderer_2d_shapes.mesh, (vertex_attribute_e[]){VERTEX_ATTRIB_FLOAT2, VERTEX_ATTRIB_FLOAT4}, 2);
-		renderer_2d_shapes.vertex_arena = arena_create(renderer_2d_shapes.allocator, VERTEX_ARENA_BLOCK_SIZE, 0);
+		renderer_2d_shapes.vertex_arena = arena_create(renderer_2d_shapes.allocator, VERTEX_ARENA_BLOCK_SIZE, ARENA_LINEAR);
 	}
 	if (renderer_flags & RENDERER_3D_SHAPES) {
 		renderer_3d_shapes.allocator = allocator;
 		renderer_3d_shapes.shader = shader_create(ctx.allocator, gl_shapes3d_vert, gl_shapes3d_frag, NULL, NULL, NULL, NULL);
 		renderer_3d_shapes.mesh = mesh_create(ctx.allocator);
 		mesh_set_attributes(&renderer_3d_shapes.mesh, (vertex_attribute_e[]){VERTEX_ATTRIB_FLOAT3, VERTEX_ATTRIB_FLOAT3, VERTEX_ATTRIB_FLOAT4}, 3);
-		renderer_3d_shapes.vertex_arena = arena_create(renderer_3d_shapes.allocator, VERTEX_ARENA_BLOCK_SIZE, 0);
-		renderer_3d_shapes.vertex_arena_transparent = arena_create(renderer_3d_shapes.allocator, VERTEX_ARENA_BLOCK_SIZE, 0);
+		renderer_3d_shapes.vertex_arena = arena_create(renderer_3d_shapes.allocator, VERTEX_ARENA_BLOCK_SIZE, ARENA_LINEAR);
+		renderer_3d_shapes.vertex_arena_transparent = arena_create(renderer_3d_shapes.allocator, VERTEX_ARENA_BLOCK_SIZE, ARENA_LINEAR);
 	}
 	if (renderer_flags & RENDERER_TEXTURES) {
 		renderer_textures.allocator = allocator;
@@ -887,7 +881,7 @@ void renderer_init(allocator_t* allocator, window_t* window, renderer_e renderer
 		renderer_text.shader = shader_create(ctx.allocator, gl_text_vert, gl_text_frag, NULL, NULL, NULL, NULL);
 		renderer_text.mesh = mesh_create(ctx.allocator);
 		mesh_set_attributes(&renderer_text.mesh, (vertex_attribute_e[]){VERTEX_ATTRIB_FLOAT2, VERTEX_ATTRIB_FLOAT2, VERTEX_ATTRIB_FLOAT4}, 3);
-		renderer_text.vertex_arena = arena_create(renderer_text.allocator, VERTEX_ARENA_BLOCK_SIZE, 0);
+		renderer_text.vertex_arena = arena_create(renderer_text.allocator, VERTEX_ARENA_BLOCK_SIZE, ARENA_LINEAR);
 	}
 
 	initialised_renderers |= renderer_flags;
@@ -933,7 +927,7 @@ void renderer_render(vec2_t screen_size, color_t clear_color, camera_t camera) {
 	}
 
 	if (initialised_renderers & RENDERER_3D_SHAPES) {
-		if (renderer_3d_shapes.vertex_arena.data != NULL && (renderer_3d_shapes.vertex_arena.current_pos != renderer_3d_shapes.vertex_arena.data)) {
+		if (renderer_3d_shapes.vertex_arena.data != NULL && arena_allocated(&renderer_3d_shapes.vertex_arena) != 0) {
 			mat4x4_t projection = mat4x4_perspective(deg2rad(camera.fov), (float)screen_size.x / (float)screen_size.y, camera.z_near, camera.z_far);
 			mat4x4_t view = mat4x4_lookat(camera.position, vec3_add(camera.position, camera.direction), camera.up_vector);
 
@@ -949,11 +943,11 @@ void renderer_render(vec2_t screen_size, color_t clear_color, camera_t camera) {
 			gl_set_state(GL_STATE_DEPTH_TEST, false);
 			#endif
 
-			mesh_set_data_vertices(&renderer_3d_shapes.mesh, renderer_3d_shapes.vertex_arena.data, (renderer_3d_shapes.vertex_arena.current_pos - renderer_3d_shapes.vertex_arena.data) / sizeof(vertex_3d_shapes_t));
+			mesh_set_data_vertices(&renderer_3d_shapes.mesh, renderer_3d_shapes.vertex_arena.data, arena_allocated(&renderer_3d_shapes.vertex_arena) / sizeof(vertex_3d_shapes_t));
 			mesh_draw(&renderer_3d_shapes.mesh, false, DRAW_MODE_TRIANGLES, false);
 
 			gl_set_state(GL_STATE_DEPTH_WRITING, false);
-			mesh_set_data_vertices(&renderer_3d_shapes.mesh, renderer_3d_shapes.vertex_arena_transparent.data, (renderer_3d_shapes.vertex_arena_transparent.current_pos - renderer_3d_shapes.vertex_arena_transparent.data) / sizeof(vertex_3d_shapes_t));
+			mesh_set_data_vertices(&renderer_3d_shapes.mesh, renderer_3d_shapes.vertex_arena_transparent.data, arena_allocated(&renderer_3d_shapes.vertex_arena_transparent) / sizeof(vertex_3d_shapes_t));
 			mesh_draw(&renderer_3d_shapes.mesh, false, DRAW_MODE_TRIANGLES, false);
 			gl_set_state(GL_STATE_DEPTH_WRITING, true);
 
@@ -965,7 +959,7 @@ void renderer_render(vec2_t screen_size, color_t clear_color, camera_t camera) {
 	}
 	
 	if (initialised_renderers & RENDERER_TEXT) {
-		if (renderer_text.vertex_arena.data != NULL && current_font != NULL && (renderer_text.vertex_arena.current_pos != renderer_text.vertex_arena.data)) {
+		if (renderer_text.vertex_arena.data != NULL && current_font != NULL && arena_allocated(&renderer_text.vertex_arena) != 0) {
 			mat4x4_t projection = mat4x4_ortho(0.0f, (float)screen_size.x, (float)screen_size.y, 0.0f, -1, 1);
 			shader_bind(renderer_text.shader);
 			texture_bind(&current_font_texture, 0);
@@ -974,25 +968,25 @@ void renderer_render(vec2_t screen_size, color_t clear_color, camera_t camera) {
 			shader_uniform_float32(renderer_text.shader, "u_smoothing", current_font->sdf_smoothing);
 			shader_uniform_float32(renderer_text.shader, "u_thickness", current_font->sdf_thickness);
 
-			mesh_set_data_vertices(&renderer_text.mesh, renderer_text.vertex_arena.data, (renderer_text.vertex_arena.current_pos - renderer_text.vertex_arena.data) / sizeof(vertex_text_t));
+			mesh_set_data_vertices(&renderer_text.mesh, renderer_text.vertex_arena.data, arena_allocated(&renderer_text.vertex_arena) / sizeof(vertex_text_t));
 			mesh_draw(&renderer_text.mesh, false, DRAW_MODE_TRIANGLES, false);
 			arena_reset(&renderer_text.vertex_arena);
 		}
 	}
 	if (initialised_renderers & RENDERER_2D_SHAPES) {
-		if (renderer_2d_shapes.vertex_arena.data != NULL && (renderer_2d_shapes.vertex_arena.current_pos != renderer_2d_shapes.vertex_arena.data)) {
+		if (renderer_2d_shapes.vertex_arena.data != NULL && arena_allocated(&renderer_2d_shapes.vertex_arena)) {
 			mat4x4_t projection = mat4x4_ortho(0.0f, (float)screen_size.x, (float)screen_size.y, 0.0f, -1, 1);
 
 			shader_bind(renderer_2d_shapes.shader);
 			shader_uniform_mat4x4(renderer_2d_shapes.shader, "u_proj", projection);
 
-			mesh_set_data_vertices(&renderer_2d_shapes.mesh, renderer_2d_shapes.vertex_arena.data, (renderer_2d_shapes.vertex_arena.current_pos - renderer_2d_shapes.vertex_arena.data) / sizeof(vertex_2d_shapes_t));
+			mesh_set_data_vertices(&renderer_2d_shapes.mesh, renderer_2d_shapes.vertex_arena.data, arena_allocated(&renderer_2d_shapes.vertex_arena) / sizeof(vertex_2d_shapes_t));
 			mesh_draw(&renderer_2d_shapes.mesh, false, DRAW_MODE_TRIANGLES, false);
 			arena_reset(&renderer_2d_shapes.vertex_arena);
 		}
 	}
 	if (initialised_renderers & RENDERER_TEXTURES) {
-		if (renderer_textures.vertex_arena.data != NULL && renderer_textures.vertex_arena.current_pos != renderer_textures.vertex_arena.data) {
+		if (renderer_textures.vertex_arena.data != NULL && arena_allocated(&renderer_textures.vertex_arena)) {
 			WARNING("texture rendering not implemented yet!");
 		}
 	}
