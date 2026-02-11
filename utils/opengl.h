@@ -6,6 +6,7 @@ typedef uint32_t shader_t;
 typedef struct mesh_t mesh_t;
 typedef struct texture_t texture_t;
 typedef struct rendertarget_t rendertarget_t;
+typedef struct framebuffer_t framebuffer_t;
 
 // -=INIT=-
 void gl_init();
@@ -79,6 +80,13 @@ void rendertarget_bind(rendertarget_t* rendertarget);
 void rendertarget_unbind(vec2_t new_viewport);
 texture_t* rendertarget_get_texture(rendertarget_t* rendertarget);
 
+// -=FRAMEBUFFER=-
+
+typedef enum framebuffer_attachment_e framebuffer_attachment_e;
+framebuffer_t framebuffer_create();
+void framebuffer_destroy(framebuffer_t* framebuffer);
+void framebuffer_attach(framebuffer_t* framebuffer, framebuffer_attachment_e attachment_type, texture_t* texture);
+
 // -=ENUMS=-
 
 typedef enum gl_state_e{
@@ -149,6 +157,20 @@ typedef enum texture_wrapping_e {
 	TEXTURE_WRAPPING_MIRRORED_REPEAT,
 }texture_wrapping_e;
 
+typedef enum framebuffer_attachment_e {
+	FRAMEBUFFER_COLOR_0,
+	FRAMEBUFFER_COLOR_1,
+	FRAMEBUFFER_COLOR_2,
+	FRAMEBUFFER_COLOR_3,
+	FRAMEBUFFER_COLOR_4,
+	FRAMEBUFFER_COLOR_5,
+	FRAMEBUFFER_COLOR_6,
+	FRAMEBUFFER_COLOR_7,
+	FRAMEBUFFER_DEPTH,
+	FRAMEBUFFER_STENCIL,
+	FRAMEBUFFER_DEPTH_STENCIL,
+}framebuffer_attachment_e;
+
 // -=STRUCTS=-
 
 typedef struct mesh_t {
@@ -176,3 +198,7 @@ typedef struct rendertarget_t {
 	uint32_t gl_framebuffer;
 	texture_t texture;
 }rendertarget_t;
+
+typedef struct framebuffer_t {
+	uint32_t gl_framebuffer;
+}framebuffer_t;

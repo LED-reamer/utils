@@ -833,3 +833,41 @@ void rendertarget_unbind(vec2_t new_viewport) {
 texture_t* rendertarget_get_texture(rendertarget_t* rendertarget) {
 	return &rendertarget->texture;
 }
+
+framebuffer_t framebuffer_create(){
+	framebuffer_t framebuffer = {0};
+	GL_CALL(glGenFramebuffers(1, &framebuffer.gl_framebuffer));
+	return framebuffer;
+}
+
+void framebuffer_destroy(framebuffer_t* framebuffer){
+	GL_CALL(glDeleteFramebuffers(1, &framebuffer->gl_framebuffer));
+}
+
+GLenum __attachment_to_gl[] = {
+	GL_COLOR_ATTACHMENT0,
+	GL_COLOR_ATTACHMENT1,
+	GL_COLOR_ATTACHMENT2,
+	GL_COLOR_ATTACHMENT3,
+	GL_COLOR_ATTACHMENT4,
+	GL_COLOR_ATTACHMENT5,
+	GL_COLOR_ATTACHMENT6,
+	GL_COLOR_ATTACHMENT7,
+	GL_DEPTH_ATTACHMENT,
+	GL_STENCIL_ATTACHMENT,
+	GL_DEPTH_STENCIL_ATTACHMENT,
+};
+
+void framebuffer_attach(framebuffer_t* framebuffer, framebuffer_attachment_e attachment_type, texture_t* texture){
+	GL_CALL(glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->gl_framebuffer));
+	GL_CALL(glFramebufferTexture2D(GL_FRAMEBUFFER, __attachment_to_gl[attachment_type], GL_TEXTURE_2D, texture->gl_texture, 0));
+	if(attachment_type <= FRAMEBUFFER_COLOR_7) /*use on all color attachments*/{
+		GL_CALL(glDrawBuffer(__attachment_to_gl[attachment_type]));
+	}
+	uint32_t result = 0;
+	GL_CALL(result = glCheckFramebufferStatus(GL_FRAMEBUFFER));
+	if (result != GL_FRAMEBUFFER_COMPLETE){
+		ERROR("Could not add attachments to framebuffer ");
+	}
+	GL_CALL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+}

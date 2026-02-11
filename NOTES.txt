@@ -1,0 +1,2 @@
+in opengl.h/c:
+	make rendertarget_t use framebuffer_t
