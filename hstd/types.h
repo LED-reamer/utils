@@ -1,6 +1,14 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+typedef unsigned char b8;
+#ifndef true
+#define true 1
+#endif
+#ifndef false
+#define false 0
+#endif
+
 typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
@@ -83,6 +91,12 @@ typedef union {
 	struct{float x, y, z, w;};
 }vec4f;
 
+//float complex
+typedef union {
+	float ri[2];
+	struct{float re, im;};
+}complexf;
+
 //float color rgba
 typedef union {
 	float rgba[4];
@@ -119,7 +133,8 @@ typedef union {
 #define VEC2F(x, y) (vec2f){{x, y}}
 #define VEC3F(x, y, z) (vec3f){{x, y, z}}
 #define VEC4F(x, y, z, w) (vec4f){{x, y, z, w}}
+#define COMPLEXF(re, im) (complexf){{re, im}}
 #define COLORF(r, g, b, a) (colorf){{r, g, b, a}}
-#define RECTANGLEF(x, y, w, h) (colorf){{x, y, w, h}}
+#define RECTANGLEF(x, y, w, h) (rectanglef){{x, y, w, h}}
 #define MAT4X4(x) (mat4x4){{x, x, x, x, x, x, x, x, x, x, x, x, x, x, x, x}}
 #endif

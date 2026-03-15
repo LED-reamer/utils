@@ -465,4 +465,45 @@ static inline mat4x4 mat4x4_inverse(mat4x4 m) {
 
 	return inv;
 }
+
+
+//complex
+//add
+static inline complexf complexf_add(complexf a, complexf b){
+	return (complexf){a.re + b.re, a.im + b.im)};
+}
+//sub
+static inline complexf complexf_sub(complexf a, complexf b){
+	return (complexf){a.re - b.re, a.im + b.im)};
+}
+//mul
+/*
+	 => (a + bi) * (c + di)
+	<=>  ac + adi + bci - bd
+	<=>  (ac - bd) + i(ad + bc)
+*/
+static inline complexf complexf_mul(complexf a, complexf b){
+	return (complexf){a.re*b.re - a.im*b.im, a.re*b.im + a.im*b.re)};
+}
+//scale
+static inline complexf complexf_scale(complexf a, f64 scale){
+	return (complexf){a.re*scale, a.im*scale)};
+}
+//cartesian complex from euler
+static inline complexf complexf_from_euler(f64 magnitude, f64 argument){
+	return (complexf){magnitude * cosf(argument), magnitude * sinf(argument)};
+}
+//complex conjugate
+static inline complexf complexf_conjugate(complexf c){
+	return (complexf){c.re, -c.im};
+}
+//absolute value / magnitude
+static inline f64 complexf_abs(complexf c){
+	return sqrtf(c.re * c.re + c.im * c.im);
+}
+//argument
+static inline f64 complexf_arg(complexf c){
+	if(c.re > 0 && c.im == 0) return PI;
+	return 2 * atanf(c.im/(complexf_abs(c) + c.re));
+}
 #endif

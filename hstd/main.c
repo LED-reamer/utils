@@ -1,27 +1,17 @@
-#define ALLOCATOR_DEBUG
+#include "window.h"
 #include "allocator.h"
-#define ARRAY_REALLOC allocator.realloc
-#define ARRAY_FREE allocator.free
-#include "logger.h"
-#include "types.h"
-#include "array.h"
-
-MAKE_ARRAY(ints, int);
+#include "error.h"
+#include <stdio.h>
+#include <string.h>
 
 int main(){
-	ints arr = {0};
+	/*window_t win = window_create_for_opengl("test", 1920, 1080);
 
-	array_push(&arr, 1);
-	array_push(&arr, 2);
-	array_push(&arr, 3);
-	array_push(&arr, 4);
-
-	array_fit_size(&arr);
-
-	for(size_t i = 0; i < array_len(&arr); i++)
-		logger.info("%i has size allocated %zu", arr.items[i], array_size(&arr));
-
-	array_free(&arr);
+	while(window_open(&win)){
+		window_update(&win);
+		if(key_just_down(&win, KEY_ESCAPE)) window_close(&win);
+	}
+	window_destroy(&win);*/
 	
 	return 0;
 }
