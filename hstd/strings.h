@@ -10,6 +10,8 @@ typedef struct{
 #define str(s) (string_t){(const char*)(s), sizeof((s))-1 }
 #define str_fmt(s) (int)(s).size, (s).str
 
+//example fmt: printf("%s", my_string.str);
+// or
 //example fmt: printf("%.*s", str_fmt(my_string));
 
 
