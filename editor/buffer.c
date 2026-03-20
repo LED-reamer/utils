@@ -22,7 +22,7 @@ error_t buffer_from_file(buffer_t* buffer, path_t filepath){
 	return ok();
 }
 
-error_t buffer_copy(buffer_t* buffer, char* source, size_t size){
+error_t buffer_copy(buffer_t* buffer, cstring source, size_t size){
 	*buffer = (buffer_t){0};
 	buffer->size = size;
 	buffer->data = allocator.malloc(buffer->size);

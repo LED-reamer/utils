@@ -8,6 +8,7 @@
 typedef struct{
 	char name[PATH_MAX];
 }path_t;
+#define PATH(x) (path_t){.name = (x)}
 
 path_t path_get_working_directory();
 path_t path_get_absolute(const char* path);//resolves ../ etc

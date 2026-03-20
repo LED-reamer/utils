@@ -3,11 +3,14 @@
 #include "terminal/term.h"
 #include <stdbool.h>
 
+//TODO TEMP
+static window_t current_win;//replaced by tiling later
+
 void init(){
 	term_init();
-	term_window_open(0, 0, 10, 10);
-	term_window_open(10, 2, 30, 10);
 
+	editor_open_file(PATH(""));
+	
 	term_next_event();
 	term_trigger_refresh(); term_update();
 }
@@ -27,4 +30,26 @@ void loop(){
 		if(c != -1) term_trigger_refresh();
 		term_update();
 	}
+}
+
+void __editor_draw_windows(){
+	
+}
+
+void editor_open_file(path_t path){
+	term_trigger_refresh();
+	size_t w, h;
+	term_get_size(&w, &h);
+	current_win.term_win = term_window_open(0, 0, w, h);
+	current_win.scroll = 0;
+	if(path.name[0] == '\0') goto open_default;
+	error_t err = buffer_from_file(&current_win.buffer, path);
+	if(err != NULL) goto open_default;
+
+	return;
+
+	char default_file[] = "default file";
+open_default:
+	err = buffer_copy(&current_win.buffer, default_file, sizeof(default_file));
+	if(err != NULL) logger.err("failed to load default file!");
 }
