@@ -1,6 +1,7 @@
 #pragma once
 #include "hstd/error.h"
 #include "hstd/file.h"
+#include "hstd/strings.h"
 #include <stddef.h>
 
 typedef struct{
@@ -11,5 +12,5 @@ typedef struct{
 }buffer_t;
 
 error_t buffer_from_file(buffer_t* buffer, path_t filepath);
-error_t buffer_copy(buffer_t* buffer, char* source, size_t size);
+error_t buffer_copy(buffer_t* buffer, cstring source, size_t size);
 void buffer_destroy(buffer_t* buffer);

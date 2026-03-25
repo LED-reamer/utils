@@ -48,6 +48,10 @@ void term_update(){
 	}
 }
 
+void term_get_size(size_t* w, size_t* h){
+	getmaxyx(stdscr, *h, *w);
+}
+
 term_window_t term_window_open(size_t x, size_t y, size_t w, size_t h){
 	window_t win = {
 		.win = newwin(h, w, y, x),
@@ -71,6 +75,10 @@ void term_window_close(term_window_t window){
 void term_resize_window(term_window_t* window, size_t x, size_t y, size_t w, size_t h){
 	mvwin((WINDOW*)window, y, x);
 	wresize((WINDOW*)window, (int)h, (int)w);
+}
+
+void term_window_get_size(term_window_t* window, size_t* w, size_t* h){
+	getmaxyx((WINDOW*)window, *h, *w);
 }
 
 term_window_t* term_get_windows(size_t* count){

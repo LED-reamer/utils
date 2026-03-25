@@ -1,16 +1,15 @@
 #pragma once
+#include "buffer.h"
 #include "hstd/array.h"
 
 void init();
 void quit();
 void loop();
 
-MAKE_ARRAY(windows_t, window_t);
-typedef enum{ LAYOUT_VERTICAL, LAYOUT_HORIZONTAL }layout_e;
-typedef struct{
-	void* term_win;
+void editor_open_file(path_t path);
 
-	layout_e layout;
-	window_t* parent;
-	windows_t children;
+typedef struct window_t{
+	void* term_win;
+	buffer_t buffer;
+	size_t scroll;//buffer-line index to be drawn in the first window-line
 }window_t;
