@@ -1,7 +1,7 @@
 #include "window.h"
 
+#include <SDL3/SDL_init.h>
 #include <SDL3/SDL_clipboard.h>
-#include <SDL3/SDL_main.h>
 #include <SDL3/SDL_mouse.h>
 #include <SDL3/SDL_time.h>
 #include <SDL3/SDL_video.h>
