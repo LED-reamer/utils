@@ -470,11 +470,11 @@ static inline mat4x4 mat4x4_inverse(mat4x4 m) {
 //complex
 //add
 static inline complexf complexf_add(complexf a, complexf b){
-	return (complexf){a.re + b.re, a.im + b.im)};
+	return (complexf){{a.re + b.re, a.im + b.im}};
 }
 //sub
 static inline complexf complexf_sub(complexf a, complexf b){
-	return (complexf){a.re - b.re, a.im + b.im)};
+	return (complexf){{a.re - b.re, a.im + b.im}};
 }
 //mul
 /*
@@ -483,19 +483,19 @@ static inline complexf complexf_sub(complexf a, complexf b){
 	<=>  (ac - bd) + i(ad + bc)
 */
 static inline complexf complexf_mul(complexf a, complexf b){
-	return (complexf){a.re*b.re - a.im*b.im, a.re*b.im + a.im*b.re)};
+	return (complexf){{a.re*b.re - a.im*b.im, a.re*b.im + a.im*b.re}};
 }
 //scale
 static inline complexf complexf_scale(complexf a, f64 scale){
-	return (complexf){a.re*scale, a.im*scale)};
+	return (complexf){{a.re*scale, a.im*scale}};
 }
 //cartesian complex from euler
 static inline complexf complexf_from_euler(f64 magnitude, f64 argument){
-	return (complexf){magnitude * cosf(argument), magnitude * sinf(argument)};
+	return (complexf){{magnitude * cosf(argument), magnitude * sinf(argument)}};
 }
 //complex conjugate
 static inline complexf complexf_conjugate(complexf c){
-	return (complexf){c.re, -c.im};
+	return (complexf){{c.re, -c.im}};
 }
 //absolute value / magnitude
 static inline f64 complexf_abs(complexf c){
@@ -506,4 +506,66 @@ static inline f64 complexf_arg(complexf c){
 	if(c.re > 0 && c.im == 0) return PI;
 	return 2 * atanf(c.im/(complexf_abs(c) + c.re));
 }
+
+//c11 feature
+#define vec2_add(X, Y) _Generic((X), \
+    vec2s: vec2s_add, \
+    vec2u: vec2u_add, \
+    vec2f: vec2f_add \
+)(X, Y)
+#define vec3_add(X, Y, Z) _Generic((X), \
+    vec3s: vec3s_add, \
+    vec3u: vec3u_add, \
+    vec3f: vec3f_add \
+)(X, Y, Z)
+#define vec4_add(X, Y, Z, W) _Generic((X), \
+    vec4s: vec4s_add, \
+    vec4u: vec4u_add, \
+    vec4f: vec4f_add \
+)(X, Y, Z, W)
+#define vec2_sub(X, Y) _Generic((X), \
+    vec2s: vec2s_sub, \
+    vec2u: vec2u_sub, \
+    vec2f: vec2f_sub \
+)(X, Y)
+#define vec3_sub(X, Y, Z) _Generic((X), \
+    vec3s: vec3s_sub, \
+    vec3u: vec3u_sub, \
+    vec3f: vec3f_sub \
+)(X, Y, Z)
+#define vec4_sub(X, Y, Z, W) _Generic((X), \
+    vec4s: vec4s_sub, \
+    vec4u: vec4u_sub, \
+    vec4f: vec4f_sub \
+)(X, Y, Z, W)
+#define vec2_mul(X, Y) _Generic((X), \
+    vec2s: vec2s_mul, \
+    vec2u: vec2u_mul, \
+    vec2f: vec2f_mul \
+)(X, Y)
+#define vec3_mul(X, Y, Z) _Generic((X), \
+    vec3s: vec3s_mul, \
+    vec3u: vec3u_mul, \
+    vec3f: vec3f_mul \
+)(X, Y, Z)
+#define vec4_mul(X, Y, Z, W) _Generic((X), \
+    vec4s: vec4s_mul, \
+    vec4u: vec4u_mul, \
+    vec4f: vec4f_mul \
+)(X, Y, Z, W)
+#define vec2_scale(X, Y) _Generic((X), \
+    vec2s: vec2s_scale, \
+    vec2u: vec2u_scale, \
+    vec2f: vec2f_scale \
+)(X, Y)
+#define vec3_scale(X, Y, Z) _Generic((X), \
+    vec3s: vec3s_scale, \
+    vec3u: vec3u_scale, \
+    vec3f: vec3f_scale \
+)(X, Y, Z)
+#define vec4_scale(X, Y, Z, W) _Generic((X), \
+    vec4s: vec4s_scale, \
+    vec4u: vec4u_scale, \
+    vec4f: vec4f_scale \
+)(X, Y, Z, W)
 #endif

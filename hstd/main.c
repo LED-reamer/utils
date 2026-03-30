@@ -1,17 +1,12 @@
-#include "window.h"
-#include "allocator.h"
-#include "error.h"
-#include <stdio.h>
-#include <string.h>
+#include "types.h"
+#include "math.h"
+#include "logger.h"
 
 int main(){
-	window_t win = window_create("test", 1920/2, 1080/2);
+	vec2f a = VEC2F(5, 5);
+	vec2f b = VEC2F(2, 2);
 
-	while(window_open(&win)){
-		window_update(&win);
-		if(key_just_down(&win, KEY_ESCAPE)) window_close(&win);
-	}
-	window_destroy(&win);
-	
+	a = vec2_scale(a, 3);
+	logger.info("%f, %f", a.x, a.y);
 	return 0;
 }
